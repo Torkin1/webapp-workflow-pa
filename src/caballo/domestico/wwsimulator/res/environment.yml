@@ -1,0 +1,14 @@
+# NOTE: *must* import with:
+#
+# conda env create -f ${ENVIRONMENT_PATH}/environment.yml -p ${ENVIRONMENT_PATH}/.conda/sim-env-dev
+
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - blist
+  - pip
+# uncomment to add dependencies not available in conda
+  # - pip:
+    
