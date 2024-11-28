@@ -1,0 +1,3 @@
+[submodule "src/caballo/domestico/wwsimulator/DES-Python"]
+	path = src/caballo/domestico/wwsimulator/DES-Python
+	url = https://github.com/pdsteele/DES-Python.git
