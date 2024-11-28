@@ -4,7 +4,15 @@
 
 Assuming that the project dir path is specified in the variable `PROJECT_DIR`:
 
-```bash
+```sh
 ENVIRONMENT_PATH=${PROJECT_DIR}/webapp-workflow-pa/src/caballo/domestico/wwsimulator/res
 conda env create -f ${ENVIRONMENT_PATH}/environment.yml -p ${ENVIRONMENT_PATH}/.conda/sim-env-dev
+```
+
+## Download prng library `DES-Python`
+
+To inflate the submodule(s):
+
+```sh
+git submodule update --init --recursive
 ```
