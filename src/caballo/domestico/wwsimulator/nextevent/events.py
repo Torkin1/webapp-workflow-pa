@@ -1,7 +1,8 @@
 from abc import abstractmethod
 from typing import Any, Callable
 from blist import sortedlist
-from caballo.domestico.wwsimulator.model import Job, Network, Server
+from caballo.domestico.wwsimulator.model import Job, Network, Server, Queue, Node, State
+
 
 class EventContext():
 
@@ -12,6 +13,7 @@ class EventContext():
 
 class EventHandler(Callable):
     def __init__(self):
+        # unused constructor
         pass
 
     @abstractmethod
@@ -36,13 +38,15 @@ class JobMovementEvent(Event):
     """
     def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
         super().__init__(time, handler)
-        self._job = job
-        self._server = server
+        self.job = job
+        self.server = server
 
+# nell'arrival il server è quello in cui sta arrivando il job
 class ArrivalEvent(JobMovementEvent):
     def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
         super().__init__(time, handler, job, server)
 
+# nella departure il server è quello da cui sta partendo il job
 class DepartureEvent(JobMovementEvent):
     def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
         super().__init__(time, handler, job, server)
@@ -85,4 +89,4 @@ class NextEventScheduler:
         """
         event.time += delay
         self._event_list.add(event)
-
+   
