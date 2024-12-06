@@ -1,15 +1,15 @@
 from abc import abstractmethod
-from typing import Any, Callable
-from blist import sortedlist
+from typing import Any, Callable, Dict, Iterable
 from caballo.domestico.wwsimulator.model import Job, Network, Server
 
 
 class EventContext():
 
-    def __init__(self, event, network: Network, scheduler):
+    def __init__(self, event, network: Network, scheduler, statistics: Dict[str, Iterable[Any]]):
         self.event = event
         self.network = network
         self.scheduler = scheduler
+        self.statistics = statistics
 
 class EventHandler(Callable):
     def __init__(self):
@@ -51,42 +51,13 @@ class DepartureEvent(JobMovementEvent):
     def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
         super().__init__(time, handler, job, server)
 
-class NextEventScheduler:
-    def __init__(self, network: Network):
-        self._event_list = sortedlist(key=lambda event: event.time)
-        self._network = network
-    
-    @property
-    def network(self):
-        return self._network
-    
-    @network.setter
-    def network(self, network):
-        self._network = network
-        self._event_list.clear()
+class StopEvent(Event):
+    """
+    A stop event signals the end of the simulation.
+    """
+    def __init__(self, time: float):
+        super().__init__(time, _handle_stop)
 
-    def has_next(self) -> bool:
-        """
-        Return true if there are more events to process.
-        """
-        return len(self._event_list) > 0
-    
-    def next(self):
-        """
-        Consumes the event with the earliest scheduled time in the event list
-        and calls the event handler.
-        """
-        if len(self._event_list) == 0:
-            raise ValueError("No more events to process.")
-        event = self._event_list.pop(0)
-        context = EventContext(event, self.network, self)
-        event.handle(context)
-
-    def schedule(self, event: Event, delay: float=0.0):
-        """
-        Adds the event to the event list with an optional delay
-        added to its scheduling time.
-        """
-        event.time += delay
-        self._event_list.add(event)
+def _handle_stop(context: EventContext):
+    context.scheduler.stop = True
    

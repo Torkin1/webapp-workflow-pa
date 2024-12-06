@@ -22,15 +22,17 @@ class State:
     Classe che definisce lo stato del sistema con una matrice 3x3 
     dove ogni riga rappresenta un nodo e ogni colonna una classe di job
     """
-    def __init__(self, matrix):
-        self.matrix = matrix
+    def __init__(self, n_nodes, n_classes):
+        self.matrix = [[0 for _ in range(n_nodes)] for _ in range(n_classes)]
+        self.n_nodes = n_nodes
+        self.n_classes = n_classes
 
     def update(self, node_class: tuple, increment: bool):
         """
         Metodo per incrementare o decrementare lo stato di un nodo
         """
 
-        if node_class[1] > 3 or node_class[0] > 3:
+        if node_class[1] > self.n_classes or node_class[0] > self.n_classes:
             raise ValueError(error)
         
         self.matrix[node_class[0]][node_class[1]] += 1 if increment else -1
@@ -53,7 +55,7 @@ class State:
         """
         if class_type > 3:
             raise ValueError(error)
-        return sum([self.matrix[i][class_type] for i in range(3)])
+        return sum([self.matrix[i][class_type] for i in range(self.n_nodes)])
     
 class Server():
     """
@@ -95,9 +97,18 @@ class Node:
 
 
 class Network:
+    """
+    A network is a collection of nodes that interact with each other to process jobs.
+    """
     def __init__(self, nodes: list, state: State):
         self.nodes = nodes
+        """
+        list of nodes in the network
+        """
         self.state = state
+        """
+        State of the network during a simulation run
+        """
 
     def get_node(self, node_id):
         for node in self.nodes:
@@ -114,3 +125,11 @@ class Network:
 
     def get_total_class(self, class_type):
         return self.state.get_total_class(class_type)
+
+    def clone(self):
+        """
+        Returns a shallow clone of the network with an empty state.
+        Network nodes are shared between the original and the clone,
+        while the state is a freshly baked one.
+        """
+        clone = Network(self.nodes, State(self.state.n_nodes, self.state.n_classes))
