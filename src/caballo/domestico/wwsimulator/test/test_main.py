@@ -1,7 +1,7 @@
 import unittest
 import caballo.domestico.wwsimulator.main as main
-import caballo.domestico.wwsimulator.des.rng as rng
-import caballo.domestico.wwsimulator.des.rvgs as rvgs
+import pdsteele.des.rng as rng
+import pdsteele.des.rvgs as rvgs
 import blist
 
 
