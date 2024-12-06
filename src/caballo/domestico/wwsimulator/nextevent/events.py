@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Callable
 from blist import sortedlist
-from caballo.domestico.wwsimulator.model import Job, Network, Server, Queue, Node, State
+from caballo.domestico.wwsimulator.model import Job, Network, Server
 
 
 class EventContext():

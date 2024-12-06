@@ -1,56 +1,66 @@
-from abc import ABC
-from caballo.domestico.wwsimulator.model import Job, Network, Server, Queue, Node, State
-from caballo.domestico.wwsimulator.nextevent.events import NextEventScheduler, ArrivalEvent, EventContext, JobMovementEvent
-from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
+from abc import ABC, abstractmethod
+
+from caballo.domestico.wwsimulator.model import Network
+from caballo.domestico.wwsimulator.nextevent.events import (Event,
+                                                            NextEventScheduler)
+from pdsteele.des import rngs
+
 
 class Simulation():
     """
     A simulation represents a run of the network model with a scheduler.
     """
-    def __init__(self, scheduler: NextEventScheduler):
+    def __init__(self, scheduler: NextEventScheduler, initial_seed=-1):
         self.scheduler = scheduler
+        self.initial_seed = initial_seed
     
     def run(self):
+        # init prng streams with initial seed
+        rngs.plantSeeds(self.initial_seed)
+        # consume events until the scheduler has no more events
         while self.scheduler.has_next():
             self.scheduler.next()
 
 class SimulationFactory(ABC):
-    def create(self) -> Simulation:
+    """
+    Abstract factory for creating simulations.
+    When implementing concrete factories, override the _create_network and _create_init_event methods
+    to customize the simulation creation process.
+    """
+    
+    # DO NOT OVERRIDE. Override other methods to modify creation behaviour.
+    def create(self, seed=rngs.DEFAULT) -> Simulation:
+        
+        # rule out random and user input values for seed
+        if seed < 0:
+            raise ValueError("Seed must be a positive integer")
+        
+        # creates network
+        network = self._create_network()
+
+        # binds a scheduler to the network
+        scheduler = NextEventScheduler(network)
+
+        # stages the initial event
+        init_event = self._create_init_event(network)
+        scheduler.schedule(init_event)
+
+        # builds the simulation
+        simulation = Simulation(scheduler, initial_seed=seed)
+        simulation.initial_seed = seed
+        return simulation
+    
+    @abstractmethod
+    def _create_network() -> Network:
+        """
+        Creates the network model and initializes its state.
+        """
         pass
-
-if __name__ == "__main__":
-    # creazione dei tre nodi
-    server_A = Server("A", 100, 'exp')
-    queue_A = Queue("A", 100)
-    node_A = Node("A", [0.2, 0.4, 0.2], server_A, queue_A)
-
-    server_B = Server("B", 100, 'exp')
-    queue_B = Queue("B", 100)
-    node_B = Node("B", [0.8, 0, 0], server_B, queue_B)
-
-    server_P = Server("P", 100, 'exp')
-    queue_P = Queue("P", 100)
-    node_P = Node("P", [0, 0.4, 0], server_P, queue_P)
-
-    nodes = [node_A, node_B, node_P]
-
-    # inizializzazione stato vuoto del sistema
-    matrix = [[0 for _ in range(3)] for _ in range(3)]
-    state = State(matrix)
-
-    # creazione della rete
-    network = Network(nodes, state)
-
-    # creazione dello scheduler
-    scheduler = NextEventScheduler(network)
-
-    # creazione di un evento di arrivo
-    job = Job(0, 0)
-    first_arrival = JobMovementEvent(0.0, HandleArrival(), job, server_A)
-    context = EventContext(first_arrival, network, scheduler)
-    first_arrival.handle(context)
-    i = 0
-    while scheduler.has_next():
-            scheduler.next()
-
+    
+    @abstractmethod
+    def _create_init_event(self, network: Network) -> Event:
+        """
+        Creates the initial event for the simulation.
+        """
+        pass
  
