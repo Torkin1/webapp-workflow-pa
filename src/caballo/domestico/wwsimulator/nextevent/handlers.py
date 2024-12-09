@@ -1,6 +1,6 @@
 from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent
 from caballo.domestico.wwsimulator.model import Job, Server
-import pdsteele.des.rvgs as des
+import caballo.domestico.wwsimulator.des.rvgs as des
 
 class HandleArrival(EventHandler):
     def __init__(self):
@@ -19,7 +19,8 @@ class HandleArrival(EventHandler):
 
             # generazione evento di departure per il job corrente
             service_rate = context.network.nodes[job_server_int].service_rate[job_class]
-            service_time = des.Exponential(service_rate)
+            service_time = context.event.server.get_service([service_rate])
+            # TODO: aggiungere la departure del job precedente al time del job corrente
             departure = DepartureEvent(context.event.time + service_time, HandleDeparture(), context.event.job, context.event.server)
 
             # scheduling dell'evento di departure
@@ -27,8 +28,7 @@ class HandleArrival(EventHandler):
 
             # rigenerazione evento di arrival dall'esterno del sistema
             if job_class == 0:
-                # TODO: parametrizzare il tasso di arrivo
-                arrival_time = des.Poisson(0.5)
+                arrival_time = context.network.get_arrivals()
                 new_job = Job(0, context.event.job.job_id+1)
                 arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.event.server)
                 context.scheduler.schedule(arrival)

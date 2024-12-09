@@ -1,4 +1,6 @@
+import caballo.domestico.wwsimulator.des.rvgs as des
 error = 'index out of range'
+distr_error = 'distribution not supported'
 class Job():
     """
     A unit of work to be processed by the nodes in a simulation.
@@ -22,8 +24,8 @@ class State:
     Classe che definisce lo stato del sistema con una matrice 3x3 
     dove ogni riga rappresenta un nodo e ogni colonna una classe di job
     """
-    def __init__(self, n_nodes, n_classes):
-        self.matrix = [[0 for _ in range(n_nodes)] for _ in range(n_classes)]
+    def __init__(self, matrix: list, n_nodes: int = 3, n_classes: int = 3):
+        self.matrix = matrix
         self.n_nodes = n_nodes
         self.n_classes = n_classes
 
@@ -75,9 +77,18 @@ class Server():
         if node_id not in server_map:
             raise ValueError(error)
         return server_map[node_id]
-        
+    
+    def get_service(self, params):
+        if self.server_distribution == 'exp':
+            return des.Exponential(params[0])
+        elif self.server_distribution == 'uniform':
+            return des.Uniform(params[0], [1])
+        else:
+            raise ValueError(distr_error)
+
+# TODO: inserire attributo per i parametri della coda nel caso non PS        
 class Queue():
-    def __init__(self, capacity: int, queue_policy='FIFO'):
+    def __init__(self, id:str, capacity: int, queue_policy='FIFO'):
         self.id = id
         self.capacity = capacity
         self.queue_policy = queue_policy
@@ -100,7 +111,7 @@ class Network:
     """
     A network is a collection of nodes that interact with each other to process jobs.
     """
-    def __init__(self, nodes: list, state: State):
+    def __init__(self, nodes: list, state: State, job_arrival_distr: str, job_arrival_param: list):
         self.nodes = nodes
         """
         list of nodes in the network
@@ -109,7 +120,23 @@ class Network:
         """
         State of the network during a simulation run
         """
+        self.job_arrival_distr = job_arrival_distr
+        """
+        Distribution of job arrivals
+        """
+        self.job_arrival_param = job_arrival_param
+        """
+        Parameters of the job arrival distribution
+        """
 
+    def get_arrivals(self):
+        if self.job_arrival_distr == 'poisson':
+            return des.Poisson(self.job_arrival_param[0])
+        elif self.job_arrival_distr == 'uniform':
+            return des.Uniform(self.job_arrival_param[0], [1])
+        else:
+            raise ValueError(distr_error)
+        
     def get_node(self, node_id):
         for node in self.nodes:
             if node.id == node_id:

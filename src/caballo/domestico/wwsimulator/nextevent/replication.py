@@ -24,7 +24,7 @@ class ReplicatedSimulation(Simulation):
     def run(self):
         # run replicas using final prng state of previous replica
         # as initial state of the next one
-        for i in range(self.replicas):
+        for _ in range(self.replicas):
             self.simulation.run()
             # collect statistics
             for key, value in self.simulation.statistics.items():

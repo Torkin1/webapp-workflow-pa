@@ -4,10 +4,15 @@ from blist import sortedlist
 
 from caballo.domestico.wwsimulator.model import Network
 from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
-                                                            EventHandler,
+                                                            EventHandler, DepartureEvent, 
+                                                            ArrivalEvent, JobMovementEvent
                                                             )
-from pdsteele.des import rngs
+from caballo.domestico.wwsimulator.model import State, Node, Server, Queue, Job
+from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
 
+from caballo.domestico.wwsimulator.des import rngs
+
+import json
 
 class Simulation():
     """
@@ -41,11 +46,27 @@ class Simulation():
             self.scheduler.next()
 
 class SimulationFactory():
+    def create_network(self):
+        with open('config.json', 'r') as file:
+            data = json.load(file)
+        nodes = []
+        for experiment in data['exps']:
+            node_list = experiment["nodes"]
+            for node in node_list:
+                server = Server(node['name'], node['server_capacity'], node['server_distr']['type'])
+                queue = Queue(node['name'], node['queue_capacity'], node['queue_discipline']['type'])
+                node = Node(node['name'], node['server_distr']['params'], server, queue)
+                nodes.append(node)
+
+            state = State(experiment['state'])
+
+            # creazione della rete
+            return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params'])
     """
     factory for creating simulations.
     """
-    def create(self, network: Network, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> Simulation:
-        
+    def create(self, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> Simulation:
+        network = self.create_network()
         # rule out random and user input values for seed
         if seed < 0:
             raise ValueError("Seed must be a positive integer")
@@ -77,6 +98,15 @@ class NextEventScheduler:
         if len(self._event_list) == 0:
             raise ValueError("No more events to process.")
         event = self._event_list.pop(0)
+        # se l'evento è un arrivo devo cercare nell'event_list, la prossima departure dallo stesso 
+        # server ed aggiornare il time dell'arrival corrente sommandogli quel valore solo se è FIFO
+        queue = self._simulation.network.nodes[event.server.node_map(event.server.id)].queue
+ 
+        if isinstance(event.handle, ArrivalEvent) and queue.queue_policy == 'fifo':
+            for e in self._event_list:
+                if e.server.id == event.server.id and isinstance(e.handler, DepartureEvent):
+                    event.time += e.time
+                    break
         context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
         event.handle(context)
 
