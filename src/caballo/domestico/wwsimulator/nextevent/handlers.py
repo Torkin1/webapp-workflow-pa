@@ -1,6 +1,6 @@
 from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent
 from caballo.domestico.wwsimulator.model import Job, Server
-import caballo.domestico.wwsimulator.des.rvgs as des
+import pdsteele.des.rvgs as des
 
 class HandleArrival(EventHandler):
     def __init__(self):

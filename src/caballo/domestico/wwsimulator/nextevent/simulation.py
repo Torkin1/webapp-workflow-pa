@@ -10,7 +10,7 @@ from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
 from caballo.domestico.wwsimulator.model import State, Node, Server, Queue, Job
 from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
 
-from caballo.domestico.wwsimulator.des import rngs
+from pdsteele.des import rngs
 
 import json
 

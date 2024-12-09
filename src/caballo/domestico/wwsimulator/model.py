@@ -1,4 +1,4 @@
-import caballo.domestico.wwsimulator.des.rvgs as des
+import pdsteele.des.rvgs as des
 error = 'index out of range'
 distr_error = 'distribution not supported'
 class Job():
