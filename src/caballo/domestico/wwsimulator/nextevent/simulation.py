@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import Type
 
 from blist import sortedlist
 
+from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
 from caballo.domestico.wwsimulator.model import Network
 from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
                                                             EventHandler, DepartureEvent, 
@@ -52,7 +54,7 @@ class Simulation():
 
 class SimulationFactory():
     def create_network(self):
-        with open('config.json', 'r') as file:
+        with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
             data = json.load(file)
         nodes = []
         for experiment in data['exps']:
@@ -92,6 +94,7 @@ class NextEventScheduler:
         self._event_list = sortedlist(key=lambda event: event.time)
         self._simulation = simulation
         self.stop=False
+        self._subscribers_by_topic = {}
     
     def has_next(self) -> bool:
         """
@@ -109,16 +112,25 @@ class NextEventScheduler:
         event = self._event_list.pop(0)
         # se l'evento è un arrivo devo cercare nell'event_list, la prossima departure dallo stesso 
         # server ed aggiornare il time dell'arrival corrente sommandogli quel valore solo se è FIFO
-        queue = self._simulation.network.nodes[event.server.node_map(event.server.id)].queue
+        # FIXME: not all events are JobMovementEvent, so some events do not have a server attribute
+        # queue = self._simulation.network.nodes[event.server.node_map(event.server.id)].queue
  
-        if queue.queue_policy == 'fifo' and isinstance(event.handle, ArrivalEvent):
-            print('fifo')
-            for e in self._event_list:
-                if e.server.id == event.server.id and isinstance(e.handler, DepartureEvent):
-                    event.time += e.time
-                    break
+        # if queue.queue_policy == 'fifo' and isinstance(event.handle, ArrivalEvent):
+        #     print('fifo')
+        #     for e in self._event_list:
+        #         if e.server.id == event.server.id and isinstance(e.handler, DepartureEvent):
+        #             event.time += e.time
+        #             break
+                    
         context = EventContext(event, self._simulation.network, self, self._simulation.statistics, self._simulation.type)
         event.handle(context)
+
+        # push notify subscribers
+        topic = type(event)
+        if topic in self._subscribers_by_topic:
+            subscribers = self._subscribers_by_topic[topic]
+            for notify in subscribers:
+                notify(context)
 
     def schedule(self, event: Event, delay: float=0.0):
         """
@@ -127,3 +139,11 @@ class NextEventScheduler:
         """
         event.time += delay
         self._event_list.add(event)
+    
+    def subscribe(self, eventType: Type[Event], handler: EventHandler):
+        """
+        Subscribes an event handler to call after an event of the specified type is consumed.
+        """
+        if eventType not in self._subscribers_by_topic:
+            self._subscribers_by_topic[eventType] = []
+        self._subscribers_by_topic[eventType].append(handler)
