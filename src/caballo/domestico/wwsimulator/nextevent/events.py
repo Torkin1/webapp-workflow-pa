@@ -5,11 +5,12 @@ from caballo.domestico.wwsimulator.model import Job, Network, Server
 
 class EventContext():
 
-    def __init__(self, event, network: Network, scheduler, statistics: Dict[str, Iterable[Any]]):
+    def __init__(self, event, network: Network, scheduler, statistics: Dict[str, Iterable[Any]], type: bool=False):
         self.event = event
         self.network = network
         self.scheduler = scheduler
         self.statistics = statistics
+        self.type = type
 
 class EventHandler(Callable):
     def __init__(self):
@@ -58,6 +59,14 @@ class StopEvent(Event):
     def __init__(self, time: float):
         super().__init__(time, _handle_stop)
 
+class MisurationEvent(Event):
+    """
+    A misuration event signals the end of a batch.
+    """
+    def __init__(self, time: float, handler: EventHandler):
+        super().__init__(time, handler)
+
 def _handle_stop(context: EventContext):
     context.scheduler.stop = True
+
    

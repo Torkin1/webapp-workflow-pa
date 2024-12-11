@@ -1,4 +1,4 @@
-from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent
+from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent, MisurationEvent
 from caballo.domestico.wwsimulator.model import Job, Server
 import pdsteele.des.rvgs as des
 
@@ -20,14 +20,15 @@ class HandleArrival(EventHandler):
             # generazione evento di departure per il job corrente
             service_rate = context.network.nodes[job_server_int].service_rate[job_class]
             service_time = context.event.server.get_service([service_rate])
-            # TODO: aggiungere la departure del job precedente al time del job corrente
+
+            context.event.job.class_id = job_class+1 if job_server != 'A' else job_class
             departure = DepartureEvent(context.event.time + service_time, HandleDeparture(), context.event.job, context.event.server)
 
             # scheduling dell'evento di departure
             context.scheduler.schedule(departure)
 
             # rigenerazione evento di arrival dall'esterno del sistema
-            if job_class == 0:
+            if context.event.server.id == 'A' and job_class == 0:
                 arrival_time = context.network.get_arrivals()
                 new_job = Job(0, context.event.job.job_id+1)
                 arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.event.server)
@@ -46,11 +47,14 @@ class HandleDeparture(EventHandler):
         print(f"Departure of job {context.event.job.job_id} of class {job_class} from server {job_server_str}:{job_server}")
 
         # aggiornamento dello stato del sistema
-        context.network.state.update((job_server, job_class), False)
+        decrease = job_class-1 if job_class > 0 else job_class
+        context.network.state.update((job_server, decrease), False)
 
         # generazione evento di arrival successivo
-        context.event.job.class_id = job_class+1 if job_server_str != 'A' or job_class != 0 else job_class
-        if job_class < 2:
+        if job_class == 2 and context.type:
+            self.handle_misuration(context)
+        
+        if not (job_class == 2 and job_server_str == 'A'):
             if job_server_str in ['B', 'P']:
                 new_server_id = 'A'
             elif job_server_str == 'A' and job_class == 0:
@@ -60,5 +64,18 @@ class HandleDeparture(EventHandler):
             next_server = Server(new_server_id, 100, 'exp')
             arrival = ArrivalEvent(context.event.time, HandleArrival(), context.event.job, next_server)
             context.scheduler.schedule(arrival)
+        
+    def handle_misuration(self, context: EventContext):
+        context.statistics['jobs'] += 1
+        if context.statistics['jobs'] == 2:
+            context.statistics['jobs'] = 0
+            misuration = MisurationEvent(context.event.time, HandleMisuration())
+            context.scheduler.schedule(misuration)
          
+class HandleMisuration(EventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def _handle(self, context: EventContext):
+        print("Misuration event at time", context.event.time)
         

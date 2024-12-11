@@ -18,9 +18,14 @@ class Simulation():
     """
     A simulation represents a run of the network model with a scheduler.
     """
-    def __init__(self, network: Network, initial_seed: int):
+    def __init__(self, network: Network, initial_seed: int, statistics: dict, type: bool=False):
         
         self.network = network
+
+        self.type = type
+        """
+        Is the simulation a batch means simulation?
+        """
 
         self.scheduler = NextEventScheduler(self)
         """
@@ -30,7 +35,7 @@ class Simulation():
         """
         Initial value for the prng streams.
         """
-        self.statistics = {}
+        self.statistics = statistics
         """
         A dictionary of statistics collected during the simulation run.
         type: Dict[str, Iterable[float]]
@@ -51,6 +56,7 @@ class SimulationFactory():
             data = json.load(file)
         nodes = []
         for experiment in data['exps']:
+            is_batch = True if experiment['type'] == "batchmeans" else False
             node_list = experiment["nodes"]
             for node in node_list:
                 server = Server(node['name'], node['server_capacity'], node['server_distr']['type'])
@@ -61,20 +67,23 @@ class SimulationFactory():
             state = State(experiment['state'])
 
             # creazione della rete
-            return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params'])
+            return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params']), is_batch
     """
     factory for creating simulations.
     """
-    def create(self, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> Simulation:
-        network = self.create_network()
+    def create(self, seed=rngs.DEFAULT) -> Simulation:
+        network, is_batch = self.create_network()
         # rule out random and user input values for seed
         if seed < 0:
             raise ValueError("Seed must be a positive integer")
         
         # builds the simulation
-        simulation = Simulation(network, initial_seed=seed)
-        simulation.scheduler.schedule(Event(0, init_event_handler))
+        statistics = {'jobs':0} if is_batch else {}
+        simulation = Simulation(network, initial_seed=seed, statistics=statistics)
+        simulation.scheduler.schedule(JobMovementEvent(0.0, HandleArrival(), Job(0, 0), network.nodes[0].server))
         simulation.initial_seed = seed
+        simulation.type = is_batch
+
 
         return simulation
         
@@ -102,12 +111,13 @@ class NextEventScheduler:
         # server ed aggiornare il time dell'arrival corrente sommandogli quel valore solo se è FIFO
         queue = self._simulation.network.nodes[event.server.node_map(event.server.id)].queue
  
-        if isinstance(event.handle, ArrivalEvent) and queue.queue_policy == 'fifo':
+        if queue.queue_policy == 'fifo' and isinstance(event.handle, ArrivalEvent):
+            print('fifo')
             for e in self._event_list:
                 if e.server.id == event.server.id and isinstance(e.handler, DepartureEvent):
                     event.time += e.time
                     break
-        context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
+        context = EventContext(event, self._simulation.network, self, self._simulation.statistics, self._simulation.type)
         event.handle(context)
 
     def schedule(self, event: Event, delay: float=0.0):
