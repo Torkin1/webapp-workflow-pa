@@ -86,12 +86,12 @@ class Server():
         else:
             raise ValueError(distr_error)
 
-# TODO: inserire attributo per i parametri della coda nel caso non PS        
 class Queue():
-    def __init__(self, id:str, capacity: int, queue_policy='FIFO'):
+    def __init__(self, id:str, capacity: int, queue_policy, queue_params:list):
         self.id = id
         self.capacity = capacity
         self.queue_policy = queue_policy
+        self.queue_params = queue_params
 
 class Node:
     def __init__(self, id: str, service_rate: list, server:Server, queue:Queue):

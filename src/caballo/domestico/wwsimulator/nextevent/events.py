@@ -5,12 +5,11 @@ from caballo.domestico.wwsimulator.model import Job, Network, Server
 
 class EventContext():
 
-    def __init__(self, event, network: Network, scheduler, statistics: Dict[str, Iterable[Any]], type: bool=False):
+    def __init__(self, event, network: Network, scheduler, statistics: Dict[str, Iterable[Any]]):
         self.event = event
         self.network = network
         self.scheduler = scheduler
         self.statistics = statistics
-        self.type = type
 
 class EventHandler(Callable):
     def __init__(self):

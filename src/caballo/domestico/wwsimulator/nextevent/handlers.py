@@ -49,10 +49,6 @@ class HandleDeparture(EventHandler):
         # aggiornamento dello stato del sistema
         decrease = job_class-1 if job_class > 0 else job_class
         context.network.state.update((job_server, decrease), False)
-
-        # generazione evento di arrival successivo
-        if job_class == 2 and context.type:
-            self.handle_misuration(context)
         
         if not (job_class == 2 and job_server_str == 'A'):
             if job_server_str in ['B', 'P']:
@@ -64,18 +60,18 @@ class HandleDeparture(EventHandler):
             next_server = Server(new_server_id, 100, 'exp')
             arrival = ArrivalEvent(context.event.time, HandleArrival(), context.event.job, next_server)
             context.scheduler.schedule(arrival)
-        
-    def handle_misuration(self, context: EventContext):
-        context.statistics['jobs'] += 1
-        if context.statistics['jobs'] == 2:
-            context.statistics['jobs'] = 0
-            misuration = MisurationEvent(context.event.time, HandleMisuration())
-            context.scheduler.schedule(misuration)
-         
-class HandleMisuration(EventHandler):
+
+class HandleInit(EventHandler):
+    def __init__(self):
+        super().__init__()
+
+class HandleFirstArrival(EventHandler):
     def __init__(self):
         super().__init__()
 
     def _handle(self, context: EventContext):
-        print("Misuration event at time", context.event.time)
+        job = Job(0, 0)
+        server = context.network.nodes[0].server
+        arrival = ArrivalEvent(0.0, HandleArrival(), job, server)
+        context.scheduler.schedule(arrival)
         

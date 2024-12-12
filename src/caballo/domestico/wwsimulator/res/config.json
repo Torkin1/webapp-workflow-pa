@@ -1,6 +1,5 @@
 {
     "exps":[{
-        "type" : "batchmeans",
         "arrival_distr":{
                         "type"   : "poisson",
                         "params" : [0.5]
