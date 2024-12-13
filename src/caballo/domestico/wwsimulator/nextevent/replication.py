@@ -1,5 +1,5 @@
 from caballo.domestico.wwsimulator.model import Network
-from caballo.domestico.wwsimulator.nextevent import streams
+from caballo.domestico.wwsimulator import streams
 from caballo.domestico.wwsimulator.nextevent import simulation
 from caballo.domestico.wwsimulator.nextevent.events import EventHandler
 from pdsteele.des import rngs
