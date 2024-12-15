@@ -1,4 +1,5 @@
 import logging
+from sched import scheduler
 import unittest
 
 from caballo.domestico.wwsimulator.nextevent import simulation
@@ -11,6 +12,13 @@ class MockEventHandler(EventHandler):
     def _handle(self, context):
         print("Handling event of type %s", type(context.event));
 
+class MockInitHandler(EventHandler):
+    def _handle(self, context):
+        scheduler = context.scheduler
+        scheduler.schedule(EventA(0, MockEventHandler()))
+        scheduler.schedule(EventB(0, MockEventHandler()))
+        scheduler.subscribe(EventA, NotificationEventA())
+
 class EventA(Event):
     def __init__(self, time: float, handler: EventHandler):
         super().__init__(time, handler)
@@ -22,14 +30,8 @@ class EventB(Event):
 class TestEventObserver(unittest.TestCase):
     def test_event_observer(self):
         factory = SimulationFactory()
-        simulation = factory.create()
+        simulation = factory.create(MockInitHandler())
         scheduler = simulation.scheduler
-        # reset event list, should not be necessary when init event is given to factory create params.
-        scheduler._event_list = sortedlist(key=lambda event: event.time)
-        scheduler.schedule(EventA(0, MockEventHandler()))
-        scheduler.schedule(EventB(0, MockEventHandler()))
-        scheduler.subscribe(EventA, NotificationEventA())
-
         while scheduler.has_next():
             scheduler.next()
         

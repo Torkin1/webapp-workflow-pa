@@ -105,11 +105,11 @@ class NextEventScheduler:
         event.handle(context)
 
         # push notify subscribers
-        topic = type(event)
-        if topic in self._subscribers_by_topic:
-            subscribers = self._subscribers_by_topic[topic]
-            for notify in subscribers:
-                notify(context)
+        for topic in self._subscribers_by_topic:
+            if isinstance(event, topic):
+                subscribers = self._subscribers_by_topic[topic]
+                for notify in subscribers:
+                    notify(context)
 
     def schedule(self, event: Event, delay: float=0.0):
         """
