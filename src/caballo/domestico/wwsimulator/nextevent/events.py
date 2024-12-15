@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Callable, Dict, Iterable
-from caballo.domestico.wwsimulator.model import Job, Network, Server
+from caballo.domestico.wwsimulator.model import Job, Network, Node, Server
 
 
 class EventContext():
@@ -36,24 +36,27 @@ class JobMovementEvent(Event):
     """
     A job can move from one node of the network to another.
     """
-    def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
+    def __init__(self, time: float, handler: EventHandler, job: Job, node: Node):
         super().__init__(time, handler)
         self.job = job
-        self.server = server
+        self.node = node
 
-# nell'arrival il server è quello in cui sta arrivando il job
+# nell'arrival il node è quello in cui sta arrivando il job
 class ArrivalEvent(JobMovementEvent):
-    def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
-        super().__init__(time, handler, job, server)
+    def __init__(self, time: float, handler: EventHandler, job: Job, node: Node):
+        super().__init__(time, handler, job, node)
 
-# nella departure il server è quello da cui sta partendo il job
+# nella departure il node è quello da cui sta partendo il job
 class DepartureEvent(JobMovementEvent):
-    def __init__(self, time: float, handler: EventHandler, job: Job, server: Server):
-        super().__init__(time, handler, job, server)
+    def __init__(self, time: float, handler: EventHandler, job: Job, node: Node):
+        super().__init__(time, handler, job, node)
 
 class StopEvent(Event):
     """
     A stop event signals the end of the simulation.
+    NOTE: if there are concurrent events scheduled at the same
+    time of the stop event, such events are processed only if they
+    are consumed before the stop event.
     """
     def __init__(self, time: float):
         super().__init__(time, _handle_stop)
