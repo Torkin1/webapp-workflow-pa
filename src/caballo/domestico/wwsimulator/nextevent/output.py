@@ -1,14 +1,20 @@
+"""
+NOTE: the estimators (reasonably) assume that a departure 
+shall always be preceded by an arrival
+"""
+
 from enum import Enum
 from typing import Iterable
-from caballo.domestico.wwsimulator.model import Node
+from caballo.domestico.wwsimulator.model import Job
 from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, EventHandler, JobMovementEvent
-from caballo.domestico.wwsimulator.statistics import WelfordEstimator, WelfordTimeAveragedEstimator
+from caballo.domestico.wwsimulator.statistics import WelfordEstimator
 
 _GLOBAL = "SYSTEM" 
 
 class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
     RESPONSE_TIME = "response_time"
+    POPULATION = "population"
 
     def for_node_variant(self, node: str, variant: str):
         return f"{node}-{self.value}-{variant}"
@@ -85,7 +91,7 @@ class ThroughputEstimator(EventHandler):
 
 class ResponseTimeEstimator(EventHandler):
     """
-    Subscribes to job arrivals and departures.
+    Subscribes to job movements (arrivals and departures).
     """
     
     class State():
@@ -114,20 +120,24 @@ class ResponseTimeEstimator(EventHandler):
         else:
             raise ValueError(f"ResponseTimeEstimator can only handle ArrivalEvent and DepartureEvent, got {type(event)}")
 
-    def _register_arrival(self, node_id: str, job, event):
+    def _register_arrival(self, node_id: str, job: Job, arrival: ArrivalEvent):
         if node_id not in self._states_by_node:
             self._states_by_node[node_id] = ResponseTimeEstimator.State()
         state = self._states_by_node[node_id]
+
         residence_timespan = Timespan()
-        residence_timespan.start = event.time
+        residence_timespan.start = arrival.time
+
         state.timespans_jobs_in_residence[job.job_id] = residence_timespan
         
     
-    def _estimate_response_time(self, node: str, job, event, statistics):
+    def _estimate_response_time(self, node: str, job: Job, departure: DepartureEvent, statistics):
         state = self._states_by_node[node]
+        
         residence_timespan = state.timespans_jobs_in_residence[job.job_id]
-        residence_timespan.end = event.time
+        residence_timespan.end = departure.time
         response_time = residence_timespan.end - residence_timespan.start
+
         state.estimator.update(response_time)
         save_statistics(OutputStatistic.RESPONSE_TIME, node, state.estimator, statistics)
     
@@ -150,8 +160,50 @@ class ResponseTimeEstimator(EventHandler):
         job_movement = context.event
 
         # compute response time of job
-        # NOTE: the following code (reasonably) assumes that a departure 
-        # shall always be preceded by an arrival
         if job_movement.external:
             self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics)
         self._estimate_response_time(node.id, job, job_movement, context.statistics)
+
+class PopulationEstimator(EventHandler):
+    """
+    Subscribes to job movements
+    """
+
+    class State():
+        def __init__(self):
+            self.estimator = WelfordEstimator()
+            self.population = 0
+    
+    def __init__(self):
+        super().__init__()
+        self._states_by_node = {}
+        self._states_by_node[_GLOBAL] = PopulationEstimator.State()
+
+    def _update_population(self, node_id: str, event, statistics, count: int):
+        if node_id not in self._states_by_node:
+            self._states_by_node[node_id] = PopulationEstimator.State()
+        state = self._states_by_node[node_id]
+
+        state.population += count
+
+        state.estimator.update(state.population)
+        save_statistics(OutputStatistic.POPULATION, node_id, state.estimator, statistics)
+        
+    def _handle(self, context):
+
+        job_movement = context.event
+        if not isinstance(job_movement, JobMovementEvent):
+            raise ValueError(f"PopulationEstimator can only subscribe to JobMovementEvent, got {type(job_movement)}")
+        
+        # we increase o decrease the population count based on the job movement direction
+        if isinstance(job_movement, ArrivalEvent):
+            count = 1
+        elif isinstance(job_movement, DepartureEvent):
+            count = -1
+        else:
+            raise ValueError(f"PopulationEstimator can only handle ArrivalEvent and DepartureEvent, got {type(job_movement)}")        
+        
+        statistics = context.statistics
+        if job_movement.external:
+            self._update_population(_GLOBAL, job_movement, statistics, count)
+        self._update_population(job_movement.node.id, job_movement, statistics, count)

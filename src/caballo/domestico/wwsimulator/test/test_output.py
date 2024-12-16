@@ -1,9 +1,10 @@
 import unittest
 
 from caballo.domestico.wwsimulator.model import Job, Node, Queue, Server
+from caballo.domestico.wwsimulator.nextevent import simulation
 from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
 from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
-from caballo.domestico.wwsimulator.nextevent.output import ResponseTimeEstimator, ThroughputEstimator
+from caballo.domestico.wwsimulator.nextevent.output import PopulationEstimator, ResponseTimeEstimator, ThroughputEstimator
 
 class MockHandler(EventHandler):
     
@@ -36,7 +37,7 @@ class InitHandler(EventHandler):
 class MockArrival(ArrivalEvent):
     def __init__(self, time):
         super().__init__(time,
-                            lambda context: context.scheduler.schedule(MockCompletion(time+time, context.event.job.job_id)),
+                            lambda context: context.scheduler.schedule(MockCompletion(time, context.event.job.job_id)),
                             Job(job_id=time, class_id=0),
                             Node("myNode", [], Server("myServer",
                                                         0,
@@ -66,6 +67,14 @@ class TestOutput(unittest.TestCase):
         simulation = factory.create(init_handler)
         response_time_estimator = ResponseTimeEstimator()
         simulation.scheduler.subscribe(JobMovementEvent, response_time_estimator)
+
+        simulation.run()
+        print(simulation.statistics)
+    
+    def test_population(self):
+        factory = SimulationFactory()
+        simulation = factory.create(init_handler)
+        simulation.scheduler.subscribe(JobMovementEvent, PopulationEstimator())
 
         simulation.run()
         print(simulation.statistics)
