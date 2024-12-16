@@ -1,9 +1,10 @@
 import unittest
 
 from caballo.domestico.wwsimulator.model import Job, Node, Queue, Server
-from caballo.domestico.wwsimulator.nextevent.events import DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
+from caballo.domestico.wwsimulator.nextevent import simulation
+from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
 from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
-from caballo.domestico.wwsimulator.output import ThroughputEstimator
+from caballo.domestico.wwsimulator.nextevent.output import PopulationEstimator, ResponseTimeEstimator, ThroughputEstimator
 
 class MockHandler(EventHandler):
     
@@ -11,10 +12,10 @@ class MockHandler(EventHandler):
         pass
 
 class MockCompletion(DepartureEvent):
-    def __init__(self, time: float):
+    def __init__(self, time: float, job_id=0):
         super().__init__(time,
                           MockHandler(),
-                          Job(0, 0),
+                          Job(job_id=job_id, class_id=0),
                           Node("myNode", [], Server("myServer",
                                                     0,
                                                     "exponential"),
@@ -22,6 +23,7 @@ class MockCompletion(DepartureEvent):
                                                     0,
                                                     "fifo",
                                                     [])))
+        self.external = True
     
 
 class InitHandler(EventHandler):
@@ -31,6 +33,23 @@ class InitHandler(EventHandler):
             if i % 2 == 0:
                 scheduler.schedule(MockCompletion(i))
 
+
+class MockArrival(ArrivalEvent):
+    def __init__(self, time):
+        super().__init__(time,
+                            lambda context: context.scheduler.schedule(MockCompletion(time, context.event.job.job_id)),
+                            Job(job_id=time, class_id=0),
+                            Node("myNode", [], Server("myServer",
+                                                        0,
+                                                        "exponential"),
+                                            Queue("myQueue",
+                                                    0,
+                                                    "fifo",
+                                                    [])))
+        self.external = True
+def init_handler(context):
+    for i in range(1000): 
+        context.scheduler.schedule(MockArrival(i))
 
 class TestOutput(unittest.TestCase):
     def test_throughput(self):
@@ -42,6 +61,24 @@ class TestOutput(unittest.TestCase):
 
         simulation.run()
         print(simulation.statistics)
+    
+    def test_response_time(self):
+        factory = SimulationFactory()
+        simulation = factory.create(init_handler)
+        response_time_estimator = ResponseTimeEstimator()
+        simulation.scheduler.subscribe(JobMovementEvent, response_time_estimator)
+
+        simulation.run()
+        print(simulation.statistics)
+    
+    def test_population(self):
+        factory = SimulationFactory()
+        simulation = factory.create(init_handler)
+        simulation.scheduler.subscribe(JobMovementEvent, PopulationEstimator())
+
+        simulation.run()
+        print(simulation.statistics)
+        
         
 
 if __name__ == "__main__":

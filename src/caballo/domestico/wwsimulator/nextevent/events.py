@@ -40,6 +40,10 @@ class JobMovementEvent(Event):
         super().__init__(time, handler)
         self.job = job
         self.node = node
+        self.external = False
+        """
+        True if the job is entering/exiting the system.
+        """
 
 # nell'arrival il node è quello in cui sta arrivando il job
 class ArrivalEvent(JobMovementEvent):
