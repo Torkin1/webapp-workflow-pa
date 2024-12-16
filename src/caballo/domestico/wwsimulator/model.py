@@ -67,16 +67,9 @@ class Server():
     capacity: capacità del server
     server_distribution: tupla con distribuzione di servizio e parametro della distribuzione
     """
-    def __init__(self, id: str, capacity: int, server_distribution: str):
-        self.id = id
+    def __init__(self, capacity: int, server_distribution: str):
         self.capacity = capacity
         self.server_distribution = server_distribution
-
-    def node_map(self, node_id):
-        server_map = {'A': 0, 'B': 1, 'P': 2}
-        if node_id not in server_map:
-            raise ValueError(error)
-        return server_map[node_id]
     
     def get_service(self, params):
         if self.server_distribution == 'exp':
@@ -87,11 +80,25 @@ class Server():
             raise ValueError(distr_error)
 
 class Queue():
-    def __init__(self, id:str, capacity: int, queue_policy, queue_params:list):
+    def __init__(self, capacity: int, queue_params:list):
         self.id = id
         self.capacity = capacity
-        self.queue_policy = queue_policy
         self.queue_params = queue_params
+
+class FIFOQueue(Queue):
+    def __init__(self, capacity: int, queue_params:list):
+        super().__init__(capacity, queue_params)
+        self.queue_time = 0
+    
+    def get_queue_time(self):
+        return self.queue_time
+    
+class PSQueue(Queue):
+    def __init__(self, capacity: int, queue_params:list):
+        super().__init__(capacity, queue_params)
+    
+    def get_queue_time(self):
+        return 0.0
 
 class Node:
     def __init__(self, id: str, service_rate: list, server:Server, queue:Queue):
@@ -105,6 +112,12 @@ class Node:
             raise ValueError(error)
         
         return self.service_rate[class_type]
+    
+    def node_map(self, node_id):
+        node_map = {'A': 0, 'B': 1, 'P': 2}
+        if node_id not in node_map:
+            raise ValueError(error)
+        return node_map[node_id]
 
 
 class Network:

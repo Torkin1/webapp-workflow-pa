@@ -9,7 +9,7 @@ from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
                                                             EventHandler, DepartureEvent, 
                                                             ArrivalEvent, JobMovementEvent
                                                             )
-from caballo.domestico.wwsimulator.model import State, Node, Server, Queue, Job
+from caballo.domestico.wwsimulator.model import State, Node, Server, FIFOQueue, PSQueue, Queue, Job
 from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
 
 from pdsteele.des import rngs
@@ -55,11 +55,15 @@ class SimulationFactory():
         for experiment in data['exps']:
             node_list = experiment["nodes"]
             for node in node_list:
-                server = Server(node['name'], node['server_capacity'], node['server_distr']['type'])
-                queue = Queue(node['name'], node['queue_capacity'], node['queue_discipline']['type'], node['queue_discipline']['params'])
+                server = Server(node['server_capacity'], node['server_distr']['type'])
+                if node['queue_discipline']['type'] == 'fifo':
+                    queue = FIFOQueue(node['queue_capacity'], node['queue_discipline']['params'])
+                elif node['queue_discipline']['type'] == 'ps':
+                    queue = PSQueue(node['queue_capacity'], node['queue_discipline']['params'])
+                else:
+                    raise ValueError("Queue discipline not supported")
                 node = Node(node['name'], node['server_distr']['params'], server, queue)
                 nodes.append(node)
-
             state = State(experiment['state'])
 
             # creazione della rete
