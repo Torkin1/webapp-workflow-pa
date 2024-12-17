@@ -1,5 +1,9 @@
 {
     "exps":[{
+        "batch_means":{
+                      "batch_size" : 2,
+                      "batch_num"  : 5
+        },
         "arrival_distr":{
                         "type"   : "poisson",
                         "params" : [0.5]

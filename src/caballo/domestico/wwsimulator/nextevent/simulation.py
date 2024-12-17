@@ -82,7 +82,7 @@ class SimulationFactory():
         simulation.scheduler.schedule(Event(0.0, init_event_handler))
 
         return simulation
-        
+
 class NextEventScheduler:
     def __init__(self, simulation: Simulation):
         self._event_list = sortedlist(key=lambda event: event.time)
