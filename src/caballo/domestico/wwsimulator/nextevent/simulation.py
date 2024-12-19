@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import copy
 from typing import Type
 
 from blist import sortedlist
@@ -12,15 +13,16 @@ from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
 from caballo.domestico.wwsimulator.model import State, Node, Server, FIFOQueue, PSQueue, Queue, Job
 from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
 
+from caballo.domestico.wwsimulator.toolbox import Clonable
 from pdsteele.des import rngs
 
 import json
 
-class Simulation():
+class Simulation(Clonable):
     """
     A simulation represents a run of the network model with a scheduler.
     """
-    def __init__(self, network: Network, initial_seed: int, statistics: dict):
+    def __init__(self, network: Network, initial_seed: int):
         
         self.network = network
 
@@ -32,7 +34,7 @@ class Simulation():
         """
         Initial value for the prng streams.
         """
-        self.statistics = statistics
+        self.statistics = {}
         """
         A dictionary of statistics collected during the simulation run.
         type: Dict[str, Iterable[float]]
@@ -46,6 +48,9 @@ class Simulation():
         # consume events until the scheduler has no more events
         while self.scheduler.has_next():
             self.scheduler.next()
+    
+    def __copy__(self):
+        return Simulation(copy(self.network), self.initial_seed, {})
 
 class SimulationFactory():
     def create_network(self):
@@ -71,14 +76,15 @@ class SimulationFactory():
     """
     factory for creating simulations.
     """
-    def create(self, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> Simulation:
-        network = self.create_network()
+    def create(self, init_event_handler: EventHandler, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
+        if network is None:
+            network = self.create_network()
         # rule out random and user input values for seed
-        if seed < 0:
+        if seed <= 0:
             raise ValueError("Seed must be a positive integer")
         
         # builds the simulation
-        simulation = Simulation(network, initial_seed=seed, statistics={})
+        simulation = Simulation(network, initial_seed=seed)
         simulation.scheduler.schedule(Event(0.0, init_event_handler))
 
         return simulation

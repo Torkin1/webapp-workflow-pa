@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+from copy import copy
+from caballo.domestico.wwsimulator.toolbox import Clonable
 import pdsteele.des.rvgs as des
 error = 'index out of range'
 distr_error = 'distribution not supported'
@@ -19,7 +22,7 @@ class Job():
         return self.job_id
     
 
-class State:
+class State(Clonable):
     """
     Classe che definisce lo stato del sistema con una matrice 3x3 
     dove ogni riga rappresenta un nodo e ogni colonna una classe di job
@@ -59,7 +62,10 @@ class State:
             raise ValueError(error)
         return sum([self.matrix[i][class_type] for i in range(self.n_nodes)])
     
-class Server():
+    def __copy__(self):
+        return State([[] for _ in range(self.n_nodes)], self.n_nodes, self.n_classes)
+    
+class Server(Clonable):
     """
     Classe che definisce un server all'interno di un nodo. Il server ha una capacità
     e una distribuzione di servizio.
@@ -78,29 +84,58 @@ class Server():
             return des.Uniform(params[0], [1])
         else:
             raise ValueError(distr_error)
+        
+    def __copy__(self):
+        return Server(self.capacity, self.server_distribution)
 
-class Queue():
+class Queue(Clonable, ABC):
     def __init__(self, capacity: int, queue_params:list):
         self.id = id
         self.capacity = capacity
         self.queue_params = queue_params
+    
+    @abstractmethod
+    def get_queue_time(self, job: Job, arrival):
+        pass
+
+    @abstractmethod
+    def register_last_departure(self, job: Job, time: float):
+        pass
+
+    
 
 class FIFOQueue(Queue):
     def __init__(self, capacity: int, queue_params:list):
         super().__init__(capacity, queue_params)
         self.queue_time = 0
     
-    def get_queue_time(self):
+    def get_queue_time(self, job: Job, arrival):
         return self.queue_time
+
+    def register_last_departure(self, job: Job, time: float):
+        #TODO: implement this method
+        pass
+
+    def __copy__(self):
+        return FIFOQueue(self.capacity, self.queue_params)
+
+
     
 class PSQueue(Queue):
     def __init__(self, capacity: int, queue_params:list):
         super().__init__(capacity, queue_params)
     
-    def get_queue_time(self):
+    def get_queue_time(self, job: Job, arrival):
         return 0.0
 
-class Node:
+    def register_last_departure(self, job: Job, time: float):
+        #TODO: implement this method
+        pass
+
+    def __copy__(self):
+        return PSQueue(self.capacity, self.queue_params)
+
+class Node(Clonable):
     def __init__(self, id: str, service_rate: list, server:Server, queue:Queue):
         self.id = id
         self.server = server
@@ -118,9 +153,12 @@ class Node:
         if node_id not in node_map:
             raise ValueError(error)
         return node_map[node_id]
+    
+    def __copy__(self):
+        return Node(self.id, self.service_rate, copy(self.server), copy(self.queue))
 
 
-class Network:
+class Network(Clonable):
     """
     A network is a collection of nodes that interact with each other to process jobs.
     """
@@ -166,10 +204,5 @@ class Network:
     def get_total_class(self, class_type):
         return self.state.get_total_class(class_type)
 
-    def clone(self):
-        """
-        Returns a shallow clone of the network with an empty state.
-        Network nodes are shared between the original and the clone,
-        while the state is a freshly baked one.
-        """
-        clone = Network(self.nodes, State(self.state.n_nodes, self.state.n_classes))
+    def __copy__(self):
+        return Network([copy(node) for node in self.nodes], copy(self.state), self.job_arrival_distr, self.job_arrival_param)

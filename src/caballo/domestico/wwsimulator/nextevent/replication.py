@@ -1,3 +1,4 @@
+from copy import copy
 from caballo.domestico.wwsimulator.model import Network
 from caballo.domestico.wwsimulator import streams
 from caballo.domestico.wwsimulator.nextevent import simulation
@@ -36,7 +37,7 @@ class ReplicatedSimulation(Simulation):
             rngs.selectStream(streams.DEFAULT)
             seed = rngs.getSeed()
             # create new replica
-            self.simulation = self.factory.create(self.simulation.network, self.init_event_handler, seed)            
+            self.simulation = self.factory.create(self.init_event_handler, network=copy(self.simulation.network), seed=seed)            
 
 class ReplicatedSimulationFactory(SimulationFactory):
     """
@@ -47,7 +48,7 @@ class ReplicatedSimulationFactory(SimulationFactory):
         self.replicas = replicas
         self.factory = factory
     
-    def create(self, network: Network, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> ReplicatedSimulation:
+    def create(self, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> ReplicatedSimulation:
         # create prototype simulation
-        simulation = self.factory.create(network, init_event_handler, seed)
+        simulation = self.factory.create(init_event_handler, seed)
         return ReplicatedSimulation(self.factory, init_event_handler, simulation, self.replicas)
