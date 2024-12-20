@@ -1,24 +1,19 @@
-from abc import ABC, abstractmethod
-import copy
+import json
 from typing import Type
 
 from blist import sortedlist
 
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
-from caballo.domestico.wwsimulator.model import Network
-from caballo.domestico.wwsimulator.nextevent.events import (Event, EventContext,
-                                                            EventHandler, DepartureEvent, 
-                                                            ArrivalEvent, JobMovementEvent
-                                                            )
-from caballo.domestico.wwsimulator.model import State, Node, Server, FIFOQueue, PSQueue, Queue, Job
-from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
-
+from caballo.domestico.wwsimulator.model import (FIFOQueue, Network, Node,
+                                                 PSQueue, Server, State)
+from caballo.domestico.wwsimulator.nextevent.events import (Event,
+                                                            EventContext,
+                                                            EventHandler)
 from caballo.domestico.wwsimulator.toolbox import Clonable
 from pdsteele.des import rngs
 
-import json
 
-class Simulation(Clonable):
+class Simulation():
     """
     A simulation represents a run of the network model with a scheduler.
     """
@@ -49,9 +44,6 @@ class Simulation(Clonable):
         while self.scheduler.has_next():
             self.scheduler.next()
     
-    def __copy__(self):
-        return Simulation(copy(self.network), self.initial_seed, {})
-
 class SimulationFactory():
     def create_network(self):
         with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
@@ -95,13 +87,25 @@ class NextEventScheduler:
         self._simulation = simulation
         self.stop=False
         self._subscribers_by_topic = {}
+        self._interceptors_by_topic = {}
+
+    def _subscribe(self, eventType: Type[Event], handler: EventHandler, subscribers: dict[Type[Event], list[EventHandler]]):
+        if eventType not in subscribers:
+            subscribers[eventType] = []
+        subscribers[eventType].append(handler)
+
+    def _push_notify(self, subscribers: dict[Type[Event], list[EventHandler]], context: EventContext, event: Event):
+        for topic in subscribers:
+            if isinstance(event, topic):
+                for notify in subscribers[topic]:
+                    notify(context)
     
     def has_next(self) -> bool:
         """
         Return true if there are more events to process.
         """
         return not self.stop and len(self._event_list) > 0
-    
+        
     def next(self):
         """
         Consumes the event with the earliest scheduled time in the event list
@@ -109,17 +113,19 @@ class NextEventScheduler:
         """
         if len(self._event_list) == 0:
             raise ValueError("No more events to process.")
+        
+        # gets event from event list and creates context
         event = self._event_list.pop(0)
-                    
         context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
+
+        # intercepts event
+        self._push_notify(self._interceptors_by_topic, context, event)
+
+        # consumes event
         event.handle(context)
 
         # push notify subscribers
-        for topic in self._subscribers_by_topic:
-            if isinstance(event, topic):
-                subscribers = self._subscribers_by_topic[topic]
-                for notify in subscribers:
-                    notify(context)
+        self._push_notify(self._subscribers_by_topic, context, event)
 
     def schedule(self, event: Event, delay: float=0.0):
         """
@@ -133,6 +139,11 @@ class NextEventScheduler:
         """
         Subscribes an event handler to call after an event of the specified type is consumed.
         """
-        if eventType not in self._subscribers_by_topic:
-            self._subscribers_by_topic[eventType] = []
-        self._subscribers_by_topic[eventType].append(handler)
+        self._subscribe(eventType, handler, self._subscribers_by_topic)
+    
+    def intercept(self, eventType: Type[Event], handler: EventHandler):
+        """
+        Subscribes an event handler to call before an event of the specified type is consumed.
+        Such handler can change the context of the event before it is actually processed.
+        """
+        self._subscribe(eventType, handler, self._interceptors_by_topic)

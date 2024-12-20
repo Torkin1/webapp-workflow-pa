@@ -1,8 +1,7 @@
 import unittest
 
-from caballo.domestico.wwsimulator.model import Job, Network, Node, Queue, Server, State
-from caballo.domestico.wwsimulator.nextevent.events import Event, EventHandler, JobMovementEvent
-from caballo.domestico.wwsimulator.nextevent.handlers import HandleArrival
+from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, Event, EventHandler
+from caballo.domestico.wwsimulator.nextevent.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
 from caballo.domestico.wwsimulator.nextevent.replication import ReplicatedSimulationFactory
 
 from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
@@ -16,19 +15,13 @@ class MockEventHandler(EventHandler):
     def _handle(self, context):
         print(f"Mock event handler called at {context.event.time}.")
 
-class MockSimulationFactory(SimulationFactory):
-    def _create_init_event_handler(self, network: Network) -> Event:
-        return Event(0.0, MockInitEventHandler())
-class MockSimulationFactoryNetwork(SimulationFactory):
-    def _create_init_event_handler(self, network: Network) -> Event:
-        # creazione del primo evento di arrivo
-        job = Job(0, 0)
-        for n in network.nodes:
-            if n.id == "A":
-                server_A = n.server
-                break
-        first_arrival = JobMovementEvent(0.0, HandleArrival(), job, server_A)
-        return first_arrival
+class ArrivalCounter(EventHandler):
+    def _handle(self, context):
+        if not context.event.external:
+            return
+        if "arrivals" not in context.statistics:
+            context.statistics["arrivals"] = 0
+        context.statistics["arrivals"] += 1
 
 class ReplicaInitEventHandler(EventHandler):
     def _handle(self, context):
@@ -37,16 +30,6 @@ class ReplicaInitEventHandler(EventHandler):
         # advance prng state
         rngs.random()
 class TestSimulation(unittest.TestCase):
-    def test_simulation(self):
-        sim_factory = MockSimulationFactory()
-        simulation = sim_factory.create(Network(None, None), seed=rngs.DEFAULT)
-        simulation.run()
-        print("Simulation completed.")
-    
-    def test_simulation_network(self):
-        factory = MockSimulationFactoryNetwork()
-        simulation = factory.create(MockInitEventHandler(), seed=rngs.DEFAULT)
-        simulation.run()
     
     def test_replication(self):
         replicas = 10
@@ -57,6 +40,16 @@ class TestSimulation(unittest.TestCase):
         print("Replicated simulation completed.")
         print("Seeds:")
         print(simulation.statistics)
+    
+    def test_simulation_horizon(self):
+        NUM_ARRIVALS = 10
+        factory = SimulationFactory()
+        simulation = factory.create(HandleFirstArrival())
+        simulation.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(NUM_ARRIVALS))
+        simulation.scheduler.subscribe(ArrivalEvent, ArrivalCounter())
+        simulation.run()
+
+        self.assertEqual(NUM_ARRIVALS, simulation.statistics["arrivals"])
 
 
 if __name__ == "__main__":

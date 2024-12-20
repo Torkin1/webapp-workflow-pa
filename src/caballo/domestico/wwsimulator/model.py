@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from copy import copy
+from caballo.domestico.wwsimulator.streams import EXTERNAL_ARRIVALS
 from caballo.domestico.wwsimulator.toolbox import Clonable
+from pdsteele.des import rngs
 import pdsteele.des.rvgs as des
 error = 'index out of range'
 distr_error = 'distribution not supported'
@@ -95,7 +97,7 @@ class Queue(Clonable, ABC):
         self.queue_params = queue_params
     
     @abstractmethod
-    def get_queue_time(self, job: Job, arrival):
+    def get_queue_time(self, job: Job, arrival_time: float):
         pass
 
     @abstractmethod
@@ -109,7 +111,7 @@ class FIFOQueue(Queue):
         super().__init__(capacity, queue_params)
         self.queue_time = 0
     
-    def get_queue_time(self, job: Job, arrival):
+    def get_queue_time(self, job: Job, arrival_time: float):
         return self.queue_time
 
     def register_last_departure(self, job: Job, time: float):
@@ -125,7 +127,7 @@ class PSQueue(Queue):
     def __init__(self, capacity: int, queue_params:list):
         super().__init__(capacity, queue_params)
     
-    def get_queue_time(self, job: Job, arrival):
+    def get_queue_time(self, job: Job, arrival_time: float):
         return 0.0
 
     def register_last_departure(self, job: Job, time: float):
@@ -181,6 +183,7 @@ class Network(Clonable):
         """
 
     def get_arrivals(self):
+        rngs.selectStream(EXTERNAL_ARRIVALS)
         if self.job_arrival_distr == 'poisson':
             return des.Poisson(self.job_arrival_param[0])
         elif self.job_arrival_distr == 'uniform':

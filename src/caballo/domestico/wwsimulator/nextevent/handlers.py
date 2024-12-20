@@ -1,6 +1,33 @@
 from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent, MisurationEvent
-from caballo.domestico.wwsimulator.model import Job, Server
-import pdsteele.des.rvgs as des
+from caballo.domestico.wwsimulator.model import Job
+
+class ArrivalsGeneratorSubscriber(EventHandler):
+    """
+    Subscribes for ArrivalEvents and counts the number of observed external arrivals.
+    It generates new external arrivals until the maximum number is reached.
+    """
+    
+    def __init__(self, max_arrivals: int):
+        super().__init__()
+        self.max_arrivals = max_arrivals
+        self.observed_arrivals = 0
+    
+    def _handle(self, context):
+        event = context.event
+        if not isinstance(event, ArrivalEvent):
+            raise ValueError(f"{__class__.__qualname__} can only handle {ArrivalEvent.__qualname__}.")
+        
+        if event.external:
+            self.observed_arrivals += 1
+
+            # rigenerazione evento di arrival dall'esterno del sistema
+            if self.observed_arrivals < self.max_arrivals:
+                arrival_time = context.network.get_arrivals()
+                new_job = Job(0, context.event.job.job_id+1)
+                arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.event.node)
+                arrival.external = True
+                context.scheduler.schedule(arrival)
+
 
 class HandleArrival(EventHandler):
     def __init__(self):
@@ -12,33 +39,22 @@ class HandleArrival(EventHandler):
 
         job_server = context.event.node.id
         job_server_int = context.event.node.node_map(job_server)
-        # TODO: rimuovere limite job
-        if job_id < 10:
-            print(f"Arrival of job {job_id} of class {job_class} at server {job_server}:{job_server_int}, external? {context.event.external}")
-            # aggiornamento dello stato del sistema
-            context.network.state.update((job_server_int, job_class), True)
+        print(f"Arrival of job {job_id} of class {job_class} at server {job_server}:{job_server_int}, external? {context.event.external}")
+        # aggiornamento dello stato del sistema
+        context.network.state.update((job_server_int, job_class), True)
 
-            # generazione evento di departure per il job corrente
-            service_rate = context.network.nodes[job_server_int].service_rate[job_class]
-            service_time = context.event.node.server.get_service([service_rate])
-            queue_time = context.event.node.queue.get_queue_time()
-            departure_time = service_time + queue_time
+        # generazione evento di departure per il job corrente
+        service_rate = context.network.nodes[job_server_int].service_rate[job_class]
+        service_time = context.event.node.server.get_service([service_rate])
+        queue_time = context.event.node.queue.get_queue_time(context.event.job, context.event.time)
+        departure_time = service_time + queue_time
 
-            context.event.job.class_id = job_class+1 if job_server != 'A' else job_class
-            departure = DepartureEvent(departure_time, HandleDeparture(), context.event.job, context.event.node)
-            departure.external = True if (job_server == 'A' and job_class == 2) else False
+        context.event.job.class_id = job_class+1 if job_server != 'A' else job_class
+        departure = DepartureEvent(departure_time, HandleDeparture(), context.event.job, context.event.node)
+        departure.external = True if (job_server == 'A' and job_class == 2) else False
 
-            # scheduling dell'evento di departure
-            context.scheduler.schedule(departure)
-
-            # rigenerazione evento di arrival dall'esterno del sistema
-            if context.event.node.id == 'A' and job_class == 0:
-                arrival_time = context.network.get_arrivals()
-                new_job = Job(0, context.event.job.job_id+1)
-                arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.event.node)
-                arrival.external = True
-                context.scheduler.schedule(arrival)
-        
+        # scheduling dell'evento di departure
+        context.scheduler.schedule(departure)        
 
 class HandleDeparture(EventHandler):
     def __init__(self):
