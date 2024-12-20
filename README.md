@@ -16,3 +16,11 @@ To inflate the submodule(s):
 ```sh
 git submodule update --init --recursive
 ```
+
+## Launch
+### Linux
+```sh
+export PYTHONPATH=$PYTHONPATH:${PROJECT_DIR}/src
+cd ${PROJECT_DIR}/src/caballo/domestico/wwsimulator/
+python -m main
+```
