@@ -24,7 +24,7 @@ class ArrivalsGeneratorSubscriber(EventHandler):
             if self.observed_arrivals < self.max_arrivals:
                 arrival_time = context.network.get_arrivals()
                 new_job = Job(0, context.event.job.job_id+1)
-                arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.event.node)
+                arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.network.get_node('A'))
                 arrival.external = True
                 context.scheduler.schedule(arrival)
 
