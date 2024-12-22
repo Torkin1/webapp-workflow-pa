@@ -1,15 +1,16 @@
+import csv
 import json
+import os
 from typing import Type
 
 from blist import sortedlist
 
-from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
+from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH, STATISTICS_DIR
 from caballo.domestico.wwsimulator.model import (FIFOQueue, Network, Node,
                                                  PSQueue, Server, State)
 from caballo.domestico.wwsimulator.nextevent.events import (Event,
                                                             EventContext,
                                                             EventHandler)
-from caballo.domestico.wwsimulator.toolbox import Clonable
 from pdsteele.des import rngs
 
 
@@ -17,7 +18,7 @@ class Simulation():
     """
     A simulation represents a run of the network model with a scheduler.
     """
-    def __init__(self, network: Network, initial_seed: int):
+    def __init__(self, study:str, network: Network, initial_seed: int):
         
         self.network = network
 
@@ -32,9 +33,13 @@ class Simulation():
         self.statistics = {}
         """
         A dictionary of statistics collected during the simulation run.
-        type: Dict[str, Iterable[float]]
+        type: Dict[str, Union[float, Iterable[float]]]
         key: statistic name
         value: a list of values (one value if single run, multiple values if replicated/batched run)
+        """
+        self.study = study
+        """
+        Name of the study this simulation belongs to. Used to group statistics.
         """
     
     def run(self):
@@ -44,11 +49,27 @@ class Simulation():
         while self.scheduler.has_next():
             self.scheduler.next()
     
+    def print_statistics(self):
+        output_file_path = os.path.join(STATISTICS_DIR, f"{self.study}_{type(self).__name__}_{self.initial_seed}.csv")
+        with open(output_file_path, "w") as output_file:
+            fieldnames = ["iteration", "statistic", "value"]
+            writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for statistic, values in self.statistics.items():
+                if isinstance(values, list):
+                    # simulation aggregates multiple runs, we have a statistic value for each iteration 
+                    for iteration in range(len(values)):
+                        writer.writerow({"iteration": iteration, "statistic": statistic, "value": values[iteration]})
+                else:
+                    # single statistic value for single run
+                    iteration = 0
+                    value = values
+                    writer.writerow({"iteration": iteration, "statistic": statistic, "value": value})   
+    
 class SimulationFactory():
-    def create_network(self):
-        with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
-            data = json.load(file)
+    def create_network(self, data) -> Network:
         nodes = []
+        #FIXME: iterates over experiments, but creates only one network? Maybe use yield instead of return?
         for experiment in data['exps']:
             node_list = experiment["nodes"]
             for node in node_list:
@@ -69,14 +90,18 @@ class SimulationFactory():
     factory for creating simulations.
     """
     def create(self, init_event_handler: EventHandler, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
+        with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
+            data = json.load(file)
+        # TODO: refactor to pass experiment index as parameter (or better, the experiment object itself)
+        simulation_study = data["exps"][0]['simulation_study']
         if network is None:
-            network = self.create_network()
+            network = self.create_network(data)
         # rule out random and user input values for seed
         if seed <= 0:
             raise ValueError("Seed must be a positive integer")
         
         # builds the simulation
-        simulation = Simulation(network, initial_seed=seed)
+        simulation = Simulation(simulation_study, network, initial_seed=seed)
         simulation.scheduler.schedule(Event(0.0, init_event_handler))
 
         return simulation

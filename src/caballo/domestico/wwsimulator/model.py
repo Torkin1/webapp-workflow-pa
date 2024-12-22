@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from caballo.domestico.wwsimulator.streams import EXTERNAL_ARRIVALS
-from caballo.domestico.wwsimulator.toolbox import Clonable
 from pdsteele.des import rngs
 import pdsteele.des.rvgs as des
 error = 'index out of range'
@@ -24,7 +23,7 @@ class Job():
         return self.job_id
     
 
-class State(Clonable):
+class State():
     """
     Classe che definisce lo stato del sistema con una matrice 3x3 
     dove ogni riga rappresenta un nodo e ogni colonna una classe di job
@@ -33,7 +32,7 @@ class State(Clonable):
         self.matrix = matrix
         self.n_nodes = n_nodes
         self.n_classes = n_classes
-
+    
     def update(self, node_class: tuple, increment: bool):
         """
         Metodo per incrementare o decrementare lo stato di un nodo
@@ -64,10 +63,7 @@ class State(Clonable):
             raise ValueError(error)
         return sum([self.matrix[i][class_type] for i in range(self.n_nodes)])
     
-    def __copy__(self):
-        return State([[] for _ in range(self.n_nodes)], self.n_nodes, self.n_classes)
-    
-class Server(Clonable):
+class Server():
     """
     Classe che definisce un server all'interno di un nodo. Il server ha una capacità
     e una distribuzione di servizio.
@@ -86,11 +82,9 @@ class Server(Clonable):
             return des.Uniform(params[0], [1])
         else:
             raise ValueError(distr_error)
-        
-    def __copy__(self):
-        return Server(self.capacity, self.server_distribution)
 
-class Queue(Clonable, ABC):
+
+class Queue(ABC):
     def __init__(self, capacity: int, queue_params:list):
         self.id = id
         self.capacity = capacity
@@ -118,10 +112,6 @@ class FIFOQueue(Queue):
         #TODO: implement this method
         pass
 
-    def __copy__(self):
-        return FIFOQueue(self.capacity, self.queue_params)
-
-
     
 class PSQueue(Queue):
     def __init__(self, capacity: int, queue_params:list):
@@ -134,10 +124,7 @@ class PSQueue(Queue):
         #TODO: implement this method
         pass
 
-    def __copy__(self):
-        return PSQueue(self.capacity, self.queue_params)
-
-class Node(Clonable):
+class Node():
     def __init__(self, id: str, service_rate: list, server:Server, queue:Queue):
         self.id = id
         self.server = server
@@ -155,12 +142,8 @@ class Node(Clonable):
         if node_id not in node_map:
             raise ValueError(error)
         return node_map[node_id]
-    
-    def __copy__(self):
-        return Node(self.id, self.service_rate, copy(self.server), copy(self.queue))
 
-
-class Network(Clonable):
+class Network():
     """
     A network is a collection of nodes that interact with each other to process jobs.
     """
@@ -206,6 +189,3 @@ class Network(Clonable):
 
     def get_total_class(self, class_type):
         return self.state.get_total_class(class_type)
-
-    def __copy__(self):
-        return Network([copy(node) for node in self.nodes], copy(self.state), self.job_arrival_distr, self.job_arrival_param)

@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Iterable
 from caballo.domestico.wwsimulator.model import Network
 from caballo.domestico.wwsimulator import streams
 from caballo.domestico.wwsimulator.nextevent import simulation
@@ -8,24 +9,32 @@ from caballo.domestico.wwsimulator.nextevent.simulation import Simulation, Simul
 
 class ReplicatedSimulation(Simulation):
     """
-    A replicated simulation runs different replicas of a prototype
-    simulation using the 
-    final prng state of the previous replica as the initial state of
-    the next one.
-    The prototype simulation is used as first replica. Subsequent replicas
-    are created using the provided factory.
+    A simulation that runs multiple replicas and aggregrates their statistics.
+    Caller is responsible to ensure that the simulation list passed as input
+    are independent replicas (i.e. they do not share state of network, scheduler, event listeners, etc.)
     """
-    def __init__(self, factory: SimulationFactory, init_event_handler: EventHandler, prototype: Simulation, replicas: int):
-        super().__init__(prototype.scheduler, prototype.initial_seed)
+    def __init__(self, replicas: Iterable[Simulation]):
+        if len(replicas) < 1:
+            raise ValueError("At least one replica is required.")
+        super().__init__(replicas[0].scheduler, replicas[0].network, replicas[0].initial_seed)
         self.replicas = replicas
-        self.simulation = prototype
-        self.factory = factory
-        self.init_event_handler = init_event_handler
+        self.simulation = replicas[0]
+
+    @property
+    def simulation(self):
+        return self._simulation
+    
+    @simulation.setter
+    def simulation(self, simulation):
+        self._simulation = simulation
+        self.scheduler = simulation.scheduler
+        self.network = simulation.network
+        self.study = simulation.study
+
     
     def run(self):
-        # run replicas using final prng state of previous replica
-        # as initial state of the next one
-        for _ in range(self.replicas):
+        i = 0
+        while i < len(self.replicas):
             self.simulation.run()
             # collect statistics
             for key, value in self.simulation.statistics.items():
@@ -33,22 +42,11 @@ class ReplicatedSimulation(Simulation):
                     self.statistics[key] = []
                 self.statistics[key].append(value) 
                 
-            # get final prng state from default stream
-            rngs.selectStream(streams.DEFAULT)
-            seed = rngs.getSeed()
-            # create new replica
-            self.simulation = self.factory.create(self.init_event_handler, network=copy(self.simulation.network), seed=seed)            
-
-class ReplicatedSimulationFactory(SimulationFactory):
-    """
-    A factory for creating replicated simulations.
-    """
-    
-    def __init__(self, factory: SimulationFactory, replicas: int):
-        self.replicas = replicas
-        self.factory = factory
-    
-    def create(self, init_event_handler: EventHandler, seed=rngs.DEFAULT) -> ReplicatedSimulation:
-        # create prototype simulation
-        simulation = self.factory.create(init_event_handler, seed)
-        return ReplicatedSimulation(self.factory, init_event_handler, simulation, self.replicas)
+            # run replicas using final prng state of previous replica
+            # as initial state of the next one to reduce overlap
+            i += 1
+            if i < len(self.replicas):
+                rngs.selectStream(streams.DEFAULT)
+                seed = rngs.getSeed()
+                self.simulation = self.replicas[i]
+                self.simulation.initial_seed = seed

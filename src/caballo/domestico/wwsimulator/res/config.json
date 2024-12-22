@@ -1,5 +1,6 @@
 {
     "exps":[{
+        "simulation_study": "objective1",
         "batch_means":{
                       "batch_size" : 2,
                       "batch_num"  : 5

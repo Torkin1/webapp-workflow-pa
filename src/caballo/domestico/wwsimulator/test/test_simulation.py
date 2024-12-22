@@ -1,8 +1,9 @@
 import unittest
 
-from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, Event, EventHandler
+from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, Event, EventHandler
 from caballo.domestico.wwsimulator.nextevent.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
-from caballo.domestico.wwsimulator.nextevent.replication import ReplicatedSimulationFactory
+from caballo.domestico.wwsimulator.nextevent.output import ThroughputEstimator
+from caballo.domestico.wwsimulator.nextevent.replication import ReplicatedSimulation
 
 from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
 from pdsteele.des import rngs
@@ -29,13 +30,15 @@ class ReplicaInitEventHandler(EventHandler):
         context.statistics["seed"] = "replica started with seed " + str(rngs.getSeed())
         # advance prng state
         rngs.random()
+
 class TestSimulation(unittest.TestCase):
     
     def test_replication(self):
-        replicas = 10
-        factory = ReplicatedSimulationFactory(SimulationFactory(), replicas)
+        NUM_REPLICAS = 10
+        factory = SimulationFactory()
         init_event_handler = ReplicaInitEventHandler()
-        simulation = factory.create(init_event_handler, seed=rngs.DEFAULT)
+        replicas = [factory.create(init_event_handler) for _ in range(NUM_REPLICAS)]
+        simulation = ReplicatedSimulation(replicas)
         simulation.run()
         print("Replicated simulation completed.")
         print("Seeds:")
@@ -50,6 +53,20 @@ class TestSimulation(unittest.TestCase):
         simulation.run()
 
         self.assertEqual(NUM_ARRIVALS, simulation.statistics["arrivals"])
+    
+    def test_print_stats(self):
+        NUM_ARRIVALS = 10
+        NUM_REPLICAS = 10
+        factory = SimulationFactory()
+        replicas = []
+        for i in range(NUM_REPLICAS):
+            replica = factory.create(HandleFirstArrival())
+            replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(NUM_ARRIVALS))
+            replica.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
+            replicas.append(replica)
+        simulation = ReplicatedSimulation(replicas)
+        simulation.run()
+        simulation.print_statistics()
 
 
 if __name__ == "__main__":

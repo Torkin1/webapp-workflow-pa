@@ -46,6 +46,9 @@ class ThroughputEstimator(EventHandler):
         self._states = {}
         self._states[_GLOBAL] = ThroughputEstimator.State()
     
+    def reset(self):
+        self.__init__()
+    
     def _estimate_throughput(self, node_id: str, event, statistics):
         if node_id not in self._states:
             self._states[node_id] = ThroughputEstimator.State()
@@ -106,6 +109,9 @@ class ResponseTimeEstimator(EventHandler):
         super().__init__()
         self._states_by_node = {}
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
+    
+    def reset(self):
+        self.__init__()
 
     def _handle(self, context):
 
@@ -178,6 +184,9 @@ class PopulationEstimator(EventHandler):
         super().__init__()
         self._states_by_node = {}
         self._states_by_node[_GLOBAL] = PopulationEstimator.State()
+    
+    def reset(self):
+        self.__init__()
 
     def _update_population(self, node_id: str, event, statistics, count: int):
         if node_id not in self._states_by_node:
