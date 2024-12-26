@@ -90,7 +90,6 @@ class ThroughputEstimator(EventHandler):
         if event.external:
             self._estimate_throughput(_GLOBAL, event, context.statistics)
         self._estimate_throughput(event.node.id, event, context.statistics)
-        node = event.node
 
 class ResponseTimeEstimator(EventHandler):
     """

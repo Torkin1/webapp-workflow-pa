@@ -67,33 +67,27 @@ class Simulation():
                     writer.writerow({"iteration": iteration, "statistic": statistic, "value": value})   
     
 class SimulationFactory():
-    def create_network(self, data) -> Network:
+    def create_network(self, experiment) -> Network:
         nodes = []
-        #FIXME: iterates over experiments, but creates only one network? Maybe use yield instead of return?
-        for experiment in data['exps']:
-            node_list = experiment["nodes"]
-            for node in node_list:
-                server = Server(node['server_capacity'], node['server_distr']['type'])
-                if node['queue_discipline']['type'] == 'fifo':
-                    queue = FIFOQueue(node['queue_capacity'], node['queue_discipline']['params'])
-                elif node['queue_discipline']['type'] == 'ps':
-                    queue = PSQueue(node['queue_capacity'], node['queue_discipline']['params'])
-                else:
-                    raise ValueError("Queue discipline not supported")
-                node = Node(node['name'], node['server_distr']['params'], server, queue)
-                nodes.append(node)
-            state = State(experiment['state'])
-
-            # creazione della rete
-            return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params'])
+        node_list = experiment["nodes"]
+        for node in node_list:
+            server = Server(node['server_capacity'], node['server_distr']['type'])
+            if node['queue_discipline']['type'] == 'fifo':
+                queue = FIFOQueue(node['queue_capacity'], node['queue_discipline']['params'])
+            elif node['queue_discipline']['type'] == 'ps':
+                queue = PSQueue(node['queue_capacity'], node['queue_discipline']['params'])
+            else:
+                raise ValueError("Queue discipline not supported")
+            node = Node(node['name'], node['server_distr']['params'], server, queue)
+            nodes.append(node)
+        state = State(experiment['state'])
+        # creazione della rete
+        return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params'])
     """
     factory for creating simulations.
     """
-    def create(self, init_event_handler: EventHandler, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
-        with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
-            data = json.load(file)
-        # TODO: refactor to pass experiment index as parameter (or better, the experiment object itself)
-        simulation_study = data["exps"][0]['simulation_study']
+    def create(self, init_event_handler: EventHandler, data, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
+        simulation_study = data['simulation_study']
         if network is None:
             network = self.create_network(data)
         # rule out random and user input values for seed

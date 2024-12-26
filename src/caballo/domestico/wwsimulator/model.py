@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import copy
-from caballo.domestico.wwsimulator.streams import EXTERNAL_ARRIVALS
+from caballo.domestico.wwsimulator.streams import EXTERNAL_ARRIVALS, SERVICES
 from pdsteele.des import rngs
 import pdsteele.des.rvgs as des
 error = 'index out of range'
@@ -76,6 +76,7 @@ class Server():
         self.server_distribution = server_distribution
     
     def get_service(self, params):
+        rngs.selectStream(SERVICES)
         if self.server_distribution == 'exp':
             return des.Exponential(params[0])
         elif self.server_distribution == 'uniform':

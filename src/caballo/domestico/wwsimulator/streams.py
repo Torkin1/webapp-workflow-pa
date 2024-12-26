@@ -8,7 +8,10 @@ EXTERNAL_ARRIVALS = 1
 """
 Stream for generating external inter-arrival times
 """
-
+SERVICES = 2
+"""
+Stream for generating service times
+"""
 
 # register more streams here ...
 

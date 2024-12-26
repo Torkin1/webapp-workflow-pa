@@ -12,31 +12,20 @@ class BatchMeansSimulation(Simulation):
     divides the simulation time into batches.
     For each batch, the simulation collects statistics and computes the statistics.
     """
-    def __init__(self, initial_seed, init_event_handler):
-        self.initial_seed = initial_seed
-        self.init_event_handler = init_event_handler
-    
-    def get_params(self):
-        with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
-            data = json.load(file)
-        for experiment in data['exps']:
-            batch_num = experiment['batch_means']['batch_num']
-            batch_size = experiment['batch_means']['batch_size']
-            return batch_num, batch_size
+    def __init__(self, simulation: Simulation):
+        super().__init__(simulation.study, simulation.network, simulation.initial_seed)
+        self.simulation = simulation
+        self.statistics = {}
 
     def run(self):
-        simulation_factory = SimulationFactory()
-        simulation = simulation_factory.create(self.init_event_handler, self.initial_seed)
-        batch_num, batch_size = self.get_params()
-        simulation.scheduler.subscribe(DepartureEvent, BatchMeansSub(batch_size, batch_num))
-        simulation.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
-        simulation.run()
+        self.simulation.run()
+
 
 class BatchMeansSub(EventHandler):
     """
     Subscribes to job completions only
     """
-    def __init__(self, batch_size:int, batch_num:int):
+    def __init__(self, batch_size:int, batch_num:int, simulation:Simulation):
         super().__init__()
         self.job_completed = 0
         """
@@ -55,6 +44,7 @@ class BatchMeansSub(EventHandler):
         Numero di batch totali
         """
         self.batch_statistics = {}
+        self.simulation = simulation
     
     def _handle(self, context):
         # conteggio job che escono dal sistema
@@ -70,13 +60,10 @@ class BatchMeansSub(EventHandler):
                     self.batch_statistics[key] = []
                 self.batch_statistics[key].append(context.statistics[key])
             context.statistics = {}
-            print(f"Throughtput: {self.batch_statistics} with index {self.batch_completed}")
-            
-        if self.batch_completed == self.batch_num:
-            print("Batch means completed")
-            # TODO: schedualare evento di stop
 
-
+            if self.batch_completed == self.batch_num:
+                self.simulation.statistics = self.batch_statistics
+                
 if __name__ == "__main__":
     bms = BatchMeansSimulation(1234, HandleFirstArrival())
     bms.run()
