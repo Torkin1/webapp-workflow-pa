@@ -105,14 +105,17 @@ class Queue(ABC):
 class FIFOQueue(Queue):
     def __init__(self, capacity: int, queue_params:list):
         super().__init__(capacity, queue_params)
+        self.last_departure = 0
         self.queue_time = 0
     
     def get_queue_time(self, job: Job, arrival_time: float):
+        diff = self.last_departure - arrival_time
+        # controllare se diff è positivo
+        self.queue_time = diff if diff > 0 else 0.0
         return self.queue_time
 
     def register_last_departure(self, job: Job, time: float):
-        #TODO: implement this method
-        pass
+        self.last_departure = time
 
     
 class PSQueue(Queue):
