@@ -11,6 +11,7 @@ from caballo.domestico.wwsimulator.model import (FIFOQueue, Network, Node,
 from caballo.domestico.wwsimulator.nextevent.events import (Event,
                                                             EventContext,
                                                             EventHandler)
+from caballo.domestico.wwsimulator.streams import SERVICES_BASE
 from pdsteele.des import rngs
 
 
@@ -69,9 +70,10 @@ class Simulation():
 class SimulationFactory():
     def create_network(self, experiment) -> Network:
         nodes = []
+        prng_streams_services = {"A": SERVICES_BASE, "B": SERVICES_BASE + 1, "C": SERVICES_BASE + 2}
         node_list = experiment["nodes"]
         for node in node_list:
-            server = Server(node['server_capacity'], node['server_distr']['type'])
+            server = Server(node['server_capacity'], node['server_distr']['type'], prng_streams_services[node['name']])
             if node['queue_discipline']['type'] == 'fifo':
                 queue = FIFOQueue(node['queue_capacity'], node['queue_discipline']['params'])
             elif node['queue_discipline']['type'] == 'ps':
