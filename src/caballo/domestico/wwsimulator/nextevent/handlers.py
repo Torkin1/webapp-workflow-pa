@@ -46,8 +46,11 @@ class HandleArrival(EventHandler):
         # generazione evento di departure per il job corrente
         service_rate = context.network.nodes[job_server_int].service_rate[job_class]
         service_time = context.event.node.server.get_service([service_rate])
-        queue_time = context.event.node.queue.get_queue_time(context.event.job, context.event.time)
-        departure_time = service_time + queue_time
+        arrival_time = context.event.time
+        queue_time = context.event.node.queue.get_queue_time(context.event.job, arrival_time)
+        print(f"Queue time: {queue_time}")
+        departure_time = arrival_time + service_time + queue_time
+        context.network.nodes[job_server_int].queue.register_last_departure(context.event.job, departure_time)
 
         context.event.job.class_id = job_class+1 if job_server != 'A' else job_class
         departure = DepartureEvent(departure_time, HandleDeparture(), context.event.job, context.event.node)
