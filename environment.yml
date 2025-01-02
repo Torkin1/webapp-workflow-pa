@@ -2,6 +2,10 @@
 #
 # conda env create -f ${ENVIRONMENT_PATH}/environment.yml -p ${ENVIRONMENT_PATH}/.conda/sim-env-dev
 
+# if depenendencies changed, update environment with:
+# conda activate ${ENVIRONMENT_PATH}/.conda/sim-env-dev
+# conda env update -p ${ENVIRONMENT_PATH}/.conda/sim-env-dev --file ${ENVIRONMENT_PATH}/environment.yml --prune
+
 channels:
   - conda-forge
   - defaults
@@ -9,6 +13,8 @@ dependencies:
   - python=3.9
   - blist
   - pip
+  - sympy
+  - ipykernel
 # uncomment to add dependencies not available in conda
   # - pip:
     
