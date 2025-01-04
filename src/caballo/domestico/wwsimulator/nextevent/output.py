@@ -91,6 +91,9 @@ class ThroughputEstimator(EventHandler):
             self._estimate_throughput(_GLOBAL, event, context.statistics)
         self._estimate_throughput(event.node.id, event, context.statistics)
 
+        if context.new_batch:
+            self.reset()
+
 class ResponseTimeEstimator(EventHandler):
     """
     Subscribes to job movements (arrivals and departures).
@@ -110,7 +113,9 @@ class ResponseTimeEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
     
     def reset(self):
-        self.__init__()
+        self.estimator = WelfordEstimator()
+        self.timespans_jobs_in_residence = {}
+        
 
     def _handle(self, context):
 
@@ -147,7 +152,6 @@ class ResponseTimeEstimator(EventHandler):
         save_statistics(OutputStatistic.RESPONSE_TIME, node, state.estimator, statistics)
     
     def _handle_arrival(self, context):
-        
         job_movement = context.event
         job = context.event.job
         node = context.event.node
@@ -168,6 +172,9 @@ class ResponseTimeEstimator(EventHandler):
         if job_movement.external:
             self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics)
         self._estimate_response_time(node.id, job, job_movement, context.statistics)
+
+        if context.new_batch:
+            self.reset()
 
 class PopulationEstimator(EventHandler):
     """
@@ -198,7 +205,7 @@ class PopulationEstimator(EventHandler):
         save_statistics(OutputStatistic.POPULATION, node_id, state.estimator, statistics)
         
     def _handle(self, context):
-
+        print("handle population")
         job_movement = context.event
         if not isinstance(job_movement, JobMovementEvent):
             raise ValueError(f"PopulationEstimator can only subscribe to JobMovementEvent, got {type(job_movement)}")
@@ -215,3 +222,7 @@ class PopulationEstimator(EventHandler):
         if job_movement.external:
             self._update_population(_GLOBAL, job_movement, statistics, count)
         self._update_population(job_movement.node.id, job_movement, statistics, count)
+        if context.statistics == {}:
+            print("statistics is empty")
+        if context.new_batch:
+            self.reset()

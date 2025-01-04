@@ -48,7 +48,6 @@ class HandleArrival(EventHandler):
         service_time = context.event.node.server.get_service([service_rate])
         arrival_time = context.event.time
         queue_time = context.event.node.queue.get_queue_time(context.event.job, arrival_time)
-        print(f"Queue time: {queue_time}")
         departure_time = arrival_time + service_time + queue_time
         context.network.nodes[job_server_int].queue.register_last_departure(context.event.job, departure_time)
 

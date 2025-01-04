@@ -10,6 +10,7 @@ class EventContext():
         self.network = network
         self.scheduler = scheduler
         self.statistics = statistics
+        self.new_batch = False
 
 class EventHandler(Callable):
     def __init__(self):

@@ -51,7 +51,10 @@ class Simulation():
             self.scheduler.next()
     
     def print_statistics(self):
-        output_file_path = os.path.join(STATISTICS_DIR, f"{self.study}_{type(self).__name__}_{self.initial_seed}.csv")
+        simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S'}
+        simulation_name = simulation_map[type(self).__name__]
+
+        output_file_path = os.path.join(STATISTICS_DIR, f"{self.study}_{simulation_name}_lambda={self.network.job_arrival_param[0]}_{self.initial_seed}.csv")
         with open(output_file_path, "w") as output_file:
             fieldnames = ["iteration", "statistic", "value"]
             writer = csv.DictWriter(output_file, fieldnames=fieldnames)
@@ -68,9 +71,9 @@ class Simulation():
                     writer.writerow({"iteration": iteration, "statistic": statistic, "value": value})   
     
 class SimulationFactory():
-    def create_network(self, experiment) -> Network:
+    def create_network(self, experiment, lambda_val) -> Network:
         nodes = []
-        prng_streams_services = {"A": SERVICES_BASE, "B": SERVICES_BASE + 1, "C": SERVICES_BASE + 2}
+        prng_streams_services = {"A": SERVICES_BASE, "B": SERVICES_BASE + 1, "P": SERVICES_BASE + 2}
         node_list = experiment["nodes"]
         for node in node_list:
             server = Server(node['server_capacity'], node['server_distr']['type'], prng_streams_services[node['name']])
@@ -84,14 +87,14 @@ class SimulationFactory():
             nodes.append(node)
         state = State(experiment['state'])
         # creazione della rete
-        return Network(nodes, state, experiment['arrival_distr']['type'], experiment['arrival_distr']['params'])
+        return Network(nodes, state, experiment['arrival_distr']['type'], [lambda_val])
     """
     factory for creating simulations.
     """
-    def create(self, init_event_handler: EventHandler, data, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
+    def create(self, init_event_handler: EventHandler, data, lambda_val, network:Network=None, seed:int=rngs.DEFAULT) -> Simulation:
         simulation_study = data['simulation_study']
         if network is None:
-            network = self.create_network(data)
+            network = self.create_network(data, lambda_val)
         # rule out random and user input values for seed
         if seed <= 0:
             raise ValueError("Seed must be a positive integer")
@@ -119,6 +122,7 @@ class NextEventScheduler:
         for topic in subscribers:
             if isinstance(event, topic):
                 for notify in subscribers[topic]:
+                    print(notify)
                     notify(context)
     
     def has_next(self) -> bool:

@@ -1,7 +1,7 @@
 from caballo.domestico.wwsimulator.nextevent.simulation import Simulation, SimulationFactory
 from caballo.domestico.wwsimulator.nextevent.handlers import HandleFirstArrival, EventHandler
 from caballo.domestico.wwsimulator.nextevent.events import DepartureEvent
-from caballo.domestico.wwsimulator.nextevent.output import ThroughputEstimator
+from caballo.domestico.wwsimulator.nextevent.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
 from pdsteele.des import rngs
 import json
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
@@ -50,6 +50,7 @@ class BatchMeansSub(EventHandler):
         # conteggio job che escono dal sistema
         if context.event.external:
             self.job_completed += 1
+        context.new_batch = False
 
         # ogni batch_size job completati, esegue il flush delle statistiche
         if self.job_completed == self.batch_size:
@@ -60,7 +61,7 @@ class BatchMeansSub(EventHandler):
                     self.batch_statistics[key] = []
                 self.batch_statistics[key].append(context.statistics[key])
             context.statistics = {}
-
+            context.new_batch = True
             if self.batch_completed == self.batch_num:
                 self.simulation.statistics = self.batch_statistics
                 
