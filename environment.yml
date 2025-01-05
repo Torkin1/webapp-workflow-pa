@@ -19,6 +19,7 @@ dependencies:
   - numpy
   - matplotlib
   - scipy
+  - tabulate
 # uncomment to add dependencies not available in conda
   # - pip:
     
