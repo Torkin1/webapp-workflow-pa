@@ -15,6 +15,10 @@ dependencies:
   - pip
   - sympy
   - ipykernel
+  - pandas
+  - numpy
+  - matplotlib
+  - scipy
 # uncomment to add dependencies not available in conda
   # - pip:
     
