@@ -15,6 +15,7 @@ dependencies:
   - pip
   - sympy
   - ipykernel
+  - tabulate
 # uncomment to add dependencies not available in conda
   # - pip:
     
