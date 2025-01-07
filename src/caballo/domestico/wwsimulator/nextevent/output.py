@@ -47,7 +47,8 @@ class ThroughputEstimator(EventHandler):
         self._states[_GLOBAL] = ThroughputEstimator.State()
     
     def reset(self):
-        self.__init__()
+        for state in self._states:
+            state._estimator = WelfordEstimator()
     
     def _estimate_throughput(self, node_id: str, event, statistics):
         if node_id not in self._states:
@@ -113,8 +114,8 @@ class ResponseTimeEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
     
     def reset(self):
-        for state in self._states_by_node.keys():
-            self._states_by_node[state].estimator = WelfordEstimator()
+        for state in self._states_by_node:
+            state.estimator = WelfordEstimator()
 
     def _handle(self, context):
 
@@ -191,7 +192,8 @@ class PopulationEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = PopulationEstimator.State()
     
     def reset(self):
-        self.__init__()
+        for state in self._states_by_node:
+            state.estimator = WelfordEstimator()
 
     def _update_population(self, node_id: str, event, statistics, count: int):
         if node_id not in self._states_by_node:
