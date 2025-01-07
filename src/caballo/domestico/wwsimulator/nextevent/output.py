@@ -39,6 +39,7 @@ class ThroughputEstimator(EventHandler):
         def __init__(self):
             self._estimator = WelfordEstimator()
             self._last_completion_time = None
+            self._concurrent_completions = 0
     
     def __init__(self):
         super().__init__()
@@ -54,19 +55,30 @@ class ThroughputEstimator(EventHandler):
             self._states[node_id] = ThroughputEstimator.State()
         state = self._states[node_id]
         
+        # first completion ever observed is not used to estimate throughput
+        # as we need at least one completion to set a reference starting time
         if state._last_completion_time is not None:
         
             delta = event.time - state._last_completion_time
+            state._concurrent_completions += 1
+
+            # concurrent completions are counted in the next non-concurrent sample.
+            #
+            # |---------------------------------------| delta
+            # ^                                       ^
+            # n concurrent completions,               first non-concurrent completion,
+            # no sample update occurs                 sample update will count the 
+            #                                         concurrent completions too 
+
 
             if delta > 0:
-                sample = 1.0 / delta
-                print(f"{sample},{delta},{event.time},{state._last_completion_time}")
-                
-                if True:
-                    state._estimator.update(sample)
+                sample = state._concurrent_completions / delta                
+                state._estimator.update(sample)
+                state._concurrent_completions = 0
 
-                    # update throughput in statistics object
-                    save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+                # update throughput in statistics object
+                save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+        
         state._last_completion_time = event.time
     
     def _handle(self, context):

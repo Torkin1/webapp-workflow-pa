@@ -1,5 +1,5 @@
 from caballo.domestico.wwsimulator.nextevent.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent, MisurationEvent
-from caballo.domestico.wwsimulator.model import Job
+from caballo.domestico.wwsimulator.model import Job, PSQueue
 
 class ArrivalsGeneratorSubscriber(EventHandler):
     """
@@ -44,6 +44,13 @@ class HandleArrival(EventHandler):
 
         # generazione evento di departure per il job corrente
         service_rate = context.network.nodes[job_server_int].service_rate[job_class]
+        
+        # rescale service rate if we are using a PS node
+        node = context.event.node
+        if type(node.queue) is PSQueue:
+            node_index = context.event.node.node_map(node.id)
+            num_jobs_in_node = sum(context.network.state.get_node_state(node_index))
+            service_rate /= num_jobs_in_node
         service_time = context.event.node.server.get_service([service_rate])
         arrival_time = context.event.time
         queue_time = context.event.node.queue.get_queue_time(context.event.job, arrival_time)
