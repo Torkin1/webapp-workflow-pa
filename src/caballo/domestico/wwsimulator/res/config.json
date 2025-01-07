@@ -14,39 +14,39 @@
                    {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.2, 0.4, 0.1]
+                                    "params" : [5, 2.5, 10]
                     },
                     "name" : "A",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                    },
                    {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.8, 0, 0]
+                                    "params" : [1.25, 0, 0]
                     },
                     "name" : "B",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                    },
                    {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0, 0.4, 0]
+                                    "params" : [0, 2.5, 0]
                     },
                     "name" : "P",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                    }
@@ -67,39 +67,39 @@
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.2, 0.4, 0.15]
+                                    "params" : [5, 2.5, 6.666667]
                     },
                     "name" : "A",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 },
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.8, 0, 0]
+                                    "params" : [1.25, 0, 0]
                     },
                     "name" : "B",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 },
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0, 0.7, 0]
+                                    "params" : [0, 1.428571, 0]
                     },
                     "name" : "P",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 }
@@ -120,39 +120,39 @@
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.2, 0.4, 0.1]
+                                    "params" : [5, 2.5, 10]
                     },
                     "name" : "A",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 },
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0.8, 0, 0]
+                                    "params" : [1.25, 0, 0]
                     },
                     "name" : "B",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 },
                 {
                     "server_distr" : {
                                     "type"   : "exp",
-                                    "params" : [0, 0.4, 0]
+                                    "params" : [0, 2.5, 0]
                     },
                     "name" : "P",
                     "server_capacity"  : 100,
                     "queue_capacity"   : 100,
                     "queue_discipline" : {
-                                        "type"   : "fifo",
+                                        "type"   : "ps",
                                         "params" : []
                     }
                 }
