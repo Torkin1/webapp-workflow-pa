@@ -38,8 +38,7 @@ class ThroughputEstimator(EventHandler):
     class State():
         def __init__(self):
             self._estimator = WelfordEstimator()
-            self._last_completion_time = 0
-            self._concurrent_completions = 0
+            self._last_completion_time = None
     
     def __init__(self):
         super().__init__()
@@ -47,7 +46,7 @@ class ThroughputEstimator(EventHandler):
         self._states[_GLOBAL] = ThroughputEstimator.State()
     
     def reset(self):
-        for state in self._states:
+        for state in self._states.values():
             state._estimator = WelfordEstimator()
     
     def _estimate_throughput(self, node_id: str, event, statistics):
@@ -55,25 +54,20 @@ class ThroughputEstimator(EventHandler):
             self._states[node_id] = ThroughputEstimator.State()
         state = self._states[node_id]
         
-        delta = event.time - state._last_completion_time
-        state._concurrent_completions += 1
+        if state._last_completion_time is not None:
+        
+            delta = event.time - state._last_completion_time
 
-        # concurrent completions are counted in the next non-concurrent sample.
-        #
-        # |---------------------------------------| delta
-        # ^                                       ^
-        # n concurrent completions,               first non-concurrent completion,
-        # no sample update occurs                 sample update will count the 
-        #                                         concurrent completions too 
-        #                                         
-        if delta > 0:
-            sample = state._concurrent_completions / delta
-            state._estimator.update(sample)
-            state._last_completion_time = event.time
-            state._concurrent_completions = 0
+            if delta > 0:
+                sample = 1.0 / delta
+                print(f"{sample},{delta},{event.time},{state._last_completion_time}")
+                
+                if True:
+                    state._estimator.update(sample)
 
-            # update throughput in statistics object
-            save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+                    # update throughput in statistics object
+                    save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+        state._last_completion_time = event.time
     
     def _handle(self, context):
         
@@ -81,10 +75,6 @@ class ThroughputEstimator(EventHandler):
 
         if not isinstance(event, DepartureEvent):
             raise ValueError(f"ThroughputEstimator can only handle DepartureEvent, got {type(event)}")
-
-        # ignore departure if at time 0 to avoid division by zero
-        if event.time == 0:
-            return
         
         # estimates time averaged throughput by computing the reciprocal of the time
         # between two consecutive job completions
@@ -114,7 +104,7 @@ class ResponseTimeEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
     
     def reset(self):
-        for state in self._states_by_node:
+        for state in self._states_by_node.values():
             state.estimator = WelfordEstimator()
 
     def _handle(self, context):
@@ -192,7 +182,7 @@ class PopulationEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = PopulationEstimator.State()
     
     def reset(self):
-        for state in self._states_by_node:
+        for state in self._states_by_node.values():
             state.estimator = WelfordEstimator()
 
     def _update_population(self, node_id: str, event, statistics, count: int):

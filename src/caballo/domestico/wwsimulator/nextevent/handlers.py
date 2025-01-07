@@ -39,7 +39,6 @@ class HandleArrival(EventHandler):
 
         job_server = context.event.node.id
         job_server_int = context.event.node.node_map(job_server)
-        print(f"Arrival of job {job_id} of class {job_class} at server {job_server}:{job_server_int}, external? {context.event.external}")
         # aggiornamento dello stato del sistema
         context.network.state.update((job_server_int, job_class), True)
 
@@ -67,8 +66,6 @@ class HandleDeparture(EventHandler):
         job_server = context.event.node.node_map(job_server_str)
         job_class = context.event.job.class_id
     
-        print(f"Departure of job {context.event.job.job_id} of class {job_class} from server {job_server_str}:{job_server}, external? {context.event.external}")
-
         # aggiornamento dello stato del sistema
         decrease = job_class-1 if job_class > 0 else job_class
         context.network.state.update((job_server, decrease), False)

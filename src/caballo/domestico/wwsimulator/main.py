@@ -25,12 +25,12 @@ def bm_main(experiment, lambda_val):
         bm_simulation.run()
         bm_simulation.print_statistics()
 
-def rep_main(experiment):
+def rep_main(experiment, lambda_val):
     replicas = []
     factory = SimulationFactory()
     for _ in range(NUM_REPLICAS):
-        replica = factory.create(HandleFirstArrival(), experiment)
-        replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(NUM_ARRIVALS))
+        replica = factory.create(HandleFirstArrival(), experiment, lambda_val)
+        replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(100))
         replica.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
         replica.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
         replica.scheduler.subscribe(JobMovementEvent, PopulationEstimator())
@@ -50,8 +50,9 @@ if __name__ == "__main__":
         # rep_main(experiment)
         # batch means simulation
         for lambda_val in experiment['arrival_distr']['params']:
-             print("lambda_val: ", lambda_val)
-             bm_main(experiment, lambda_val)
+             #print("lambda_val: ", lambda_val)
+             #bm_main(experiment, lambda_val)
+             rep_main(experiment, lambda_val)
 
 
 

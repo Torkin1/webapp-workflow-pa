@@ -79,7 +79,7 @@ class Server():
     def get_service(self, params):
         rngs.selectStream(self.prng_stream)
         if self.server_distribution == 'exp':
-            return des.Exponential(params[0])
+            return des.Exponential(1.0 / params[0])
         elif self.server_distribution == 'uniform':
             return des.Uniform(params[0], [1])
         else:
@@ -126,7 +126,6 @@ class PSQueue(Queue):
         return 0.0
 
     def register_last_departure(self, job: Job, time: float):
-        #TODO: implement this method
         pass
 
 class Node():
@@ -173,7 +172,7 @@ class Network():
     def get_arrivals(self):
         rngs.selectStream(EXTERNAL_ARRIVALS)
         if self.job_arrival_distr == 'poisson':
-            return des.Poisson(self.job_arrival_param[0])
+            return des.Exponential(1.0 / self.job_arrival_param[0])
         elif self.job_arrival_distr == 'uniform':
             return des.Uniform(self.job_arrival_param[0], [1])
         else:
