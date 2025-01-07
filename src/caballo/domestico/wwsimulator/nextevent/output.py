@@ -113,9 +113,8 @@ class ResponseTimeEstimator(EventHandler):
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
     
     def reset(self):
-        self.estimator = WelfordEstimator()
-        self.timespans_jobs_in_residence = {}
-        
+        for state in self._states_by_node.keys():
+            self._states_by_node[state].estimator = WelfordEstimator()
 
     def _handle(self, context):
 
