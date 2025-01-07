@@ -53,8 +53,11 @@ class Simulation():
     def print_statistics(self):
         simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S'}
         simulation_name = simulation_map[type(self).__name__]
+        statistic_path = os.path.join(STATISTICS_DIR, self.study)
+        if not os.path.exists(statistic_path):
+            os.makedirs(statistic_path)
 
-        output_file_path = os.path.join(STATISTICS_DIR, f"{self.study}_{simulation_name}_lambda={self.network.job_arrival_param[0]}_{self.initial_seed}.csv")
+        output_file_path = os.path.join(statistic_path, "{}_{}_lambda={}_{}.csv".format(self.study, simulation_name, self.network.job_arrival_param[0], self.initial_seed))
         with open(output_file_path, "w") as output_file:
             fieldnames = ["iteration", "statistic", "value"]
             writer = csv.DictWriter(output_file, fieldnames=fieldnames)
@@ -122,7 +125,6 @@ class NextEventScheduler:
         for topic in subscribers:
             if isinstance(event, topic):
                 for notify in subscribers[topic]:
-                    print(notify)
                     notify(context)
     
     def has_next(self) -> bool:

@@ -205,7 +205,6 @@ class PopulationEstimator(EventHandler):
         save_statistics(OutputStatistic.POPULATION, node_id, state.estimator, statistics)
         
     def _handle(self, context):
-        print("handle population")
         job_movement = context.event
         if not isinstance(job_movement, JobMovementEvent):
             raise ValueError(f"PopulationEstimator can only subscribe to JobMovementEvent, got {type(job_movement)}")
