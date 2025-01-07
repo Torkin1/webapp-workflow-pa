@@ -1,11 +1,11 @@
-from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, JobMovementEvent
-from caballo.domestico.wwsimulator.nextevent.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
-from caballo.domestico.wwsimulator.nextevent.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
-from caballo.domestico.wwsimulator.nextevent.replication import ReplicatedSimulation
-from caballo.domestico.wwsimulator.nextevent.batchmeans import BatchMeansSub, BatchMeansSimulation
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, JobMovementEvent
+from caballo.domestico.wwsimulator.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
+from caballo.domestico.wwsimulator.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
+from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
+from caballo.domestico.wwsimulator.batchmeans import BatchMeansSub, BatchMeansSimulation
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
 
-from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
+from caballo.domestico.wwsimulator.simulation import SimulationFactory
 import json
 def bm_main(experiment, lambda_val):
         batch_size = experiment['batch_means']['batch_size']

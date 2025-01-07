@@ -1,11 +1,11 @@
 import unittest
 
-from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, Event, EventHandler
-from caballo.domestico.wwsimulator.nextevent.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
-from caballo.domestico.wwsimulator.nextevent.output import ThroughputEstimator
-from caballo.domestico.wwsimulator.nextevent.replication import ReplicatedSimulation
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler
+from caballo.domestico.wwsimulator.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
+from caballo.domestico.wwsimulator.output import ThroughputEstimator
+from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
 
-from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
+from caballo.domestico.wwsimulator.simulation import SimulationFactory
 from pdsteele.des import rngs
 
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH

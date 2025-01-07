@@ -2,9 +2,9 @@ import logging
 from sched import scheduler
 import unittest
 
-from caballo.domestico.wwsimulator.nextevent import simulation
-from caballo.domestico.wwsimulator.nextevent.events import Event, EventHandler
-from caballo.domestico.wwsimulator.nextevent.simulation import NextEventScheduler, Simulation, SimulationFactory
+from caballo.domestico.wwsimulator import simulation
+from caballo.domestico.wwsimulator.events import Event, EventHandler
+from caballo.domestico.wwsimulator.simulation import NextEventScheduler, Simulation, SimulationFactory
 from blist import sortedlist
 
 

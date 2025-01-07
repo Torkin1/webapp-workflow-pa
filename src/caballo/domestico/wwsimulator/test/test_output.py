@@ -1,10 +1,10 @@
 import unittest
 
 from caballo.domestico.wwsimulator.model import Job, Node, Queue, Server
-from caballo.domestico.wwsimulator.nextevent import simulation
-from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
-from caballo.domestico.wwsimulator.nextevent.simulation import SimulationFactory
-from caballo.domestico.wwsimulator.nextevent.output import PopulationEstimator, ResponseTimeEstimator, ThroughputEstimator
+from caballo.domestico.wwsimulator import simulation
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
+from caballo.domestico.wwsimulator.simulation import SimulationFactory
+from caballo.domestico.wwsimulator.output import PopulationEstimator, ResponseTimeEstimator, ThroughputEstimator
 
 class MockHandler(EventHandler):
     

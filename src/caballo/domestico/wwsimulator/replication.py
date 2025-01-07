@@ -2,10 +2,10 @@ from copy import copy
 from typing import Iterable
 from caballo.domestico.wwsimulator.model import Network
 from caballo.domestico.wwsimulator import streams
-from caballo.domestico.wwsimulator.nextevent import simulation
-from caballo.domestico.wwsimulator.nextevent.events import EventHandler
+from caballo.domestico.wwsimulator import simulation
+from caballo.domestico.wwsimulator.events import EventHandler
 from pdsteele.des import rngs
-from caballo.domestico.wwsimulator.nextevent.simulation import Simulation, SimulationFactory
+from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
 
 class ReplicatedSimulation(Simulation):
     """

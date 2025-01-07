@@ -6,7 +6,7 @@ shall always be preceded by an arrival
 from enum import Enum
 from typing import Iterable
 from caballo.domestico.wwsimulator.model import Job
-from caballo.domestico.wwsimulator.nextevent.events import ArrivalEvent, DepartureEvent, EventHandler, JobMovementEvent
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, EventHandler, JobMovementEvent
 from caballo.domestico.wwsimulator.statistics import WelfordEstimator
 
 _GLOBAL = "SYSTEM" 
