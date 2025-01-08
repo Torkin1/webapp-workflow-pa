@@ -1,5 +1,5 @@
 from caballo.domestico.wwsimulator.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent, MisurationEvent
-from caballo.domestico.wwsimulator.model import Job, PSQueue
+from caballo.domestico.wwsimulator.model import Job, Node, PSQueue, State
 from blist import sortedlist
 
 class ArrivalsGeneratorSubscriber(EventHandler):
@@ -29,60 +29,45 @@ class ArrivalsGeneratorSubscriber(EventHandler):
                 arrival.external = True
                 context.scheduler.schedule(arrival)
 
+def _update_departures(now, node: Node, num_jobs_in_service, old_num_jobs_in_service, scheduler,):
+        
+    # La pesca random è sul tempo di servizio, che chiamiamo S. 
+    # Sia Srem il tempo di servizio rimanente.
+    # Sia Drem la domanda rimanente e mu/N il rate di servizio, allora Srem = Drem/(mu/N).
+    # Prendiamo nuovo rate mu2 = mu/N*, dove N* è il nuovo numero dei job in servizio.
+    # Sia Srem2 = Drem/mu2 il tempo di servizio che ci metterebbe con mu2.
+    # Ti ricavi Drem = Srem•mu/N => Srem2 = (Srem•mu/N)/(mu/N*) = Srem • N*/N
+    # Ora i job vanno schedulati a current time + Srem2
+    scheduled_departures = node.scheduled_departures
+    for departure in scheduled_departures.values():
+
+        # cancel old departures and schedules a new one after recalculating the remaining service time
+        scheduler.cancel(departure)
+        remaining_service_time = (departure.time - now) * (num_jobs_in_service / old_num_jobs_in_service)
+        departure_time = now + remaining_service_time
+        new_departure = DepartureEvent(departure_time, HandleDeparture(), departure.job, departure.node)
+        new_departure.external = departure.external
+        scheduler.schedule(new_departure)
+        node.scheduled_departures[departure.job.job_id] = new_departure
+
+def _get_num_jobs_in_node(node: Node, state: State):
+    node_index = node.node_map(node.id)
+    num_jobs_in_node = sum(state.get_node_state(node_index))
+    return num_jobs_in_node
 
 class HandleArrival(EventHandler):
-    
-    class State:
-        def __init__(self):
-            self.scheduled_departures = []
-    
+        
     def __init__(self):
         super().__init__()
-        self.state_by_node = {}
-
-    def _remove_expired_departures(self, now, state):
-        state.scheduled_departures = [departure for departure in state.scheduled_departures if departure.time >= now and not departure.is_cancelled]
-        
-
-    def _update_departures(self, now, state, num_jobs_in_service, scheduler):
-        
-        # remove departures with time strictly in the past.
-        #
-        # This means that departures with time == now are updated, but they could have
-        # already been processed. This is not a problem since the num_jobs_in_service
-        # is calculated using state, which reflects the true value of jobs in service
-        # at this note.
-        # 
-        # The worst that can happen is that already processed departures
-        # have their time updated, but they have already been remove from event queue
-        # so their update is silently ignored by the simulation.
-        self._remove_expired_departures(now, state)
-        
-        # La pesca random è sul tempo di servizio, che chiamiamo S. 
-        # Sia Srem il tempo di servizio rimanente.
-        # Sia Drem la domanda rimanente e mu il rate di servizio, allora Srem = Drem/mu.
-        # Prendiamo nuovo rate mu2 = mu/N, dove N è il numero dei job in servizio.
-        # Sia Srem2 = Drem/mu2 il tempo di servizio che ci metterebbe con mu2.
-        # Ti ricavi Drem = Srem•mu => Srem2 = (Srem•mu)/(mu/N) = Srem • N
-        # Ora i job vanno schedulati a current time + Srem2
-        scheduled_departures = state.scheduled_departures
-        for departure in scheduled_departures:
-
-            # cancel old departures and schedules a new one after recalculating the remaining service time
-            scheduler.cancel(departure)
-            remaining_service_time = (departure.time - now) * num_jobs_in_service
-            departure_time = now + remaining_service_time
-            new_departure = DepartureEvent(departure_time, HandleDeparture(), departure.job, departure.node)
-            new_departure.external = departure.external
-            scheduler.schedule(new_departure)
-
     
     def _handle(self, context: EventContext):
         
-        job_class = context.event.job.class_id
+        job = context.event.job
+        job_class = job.class_id
 
         job_server = context.event.node.id
         job_server_int = context.event.node.node_map(job_server)
+        
         # aggiornamento dello stato del sistema
         context.network.state.update((job_server_int, job_class), True)
 
@@ -92,20 +77,15 @@ class HandleArrival(EventHandler):
         # rescale service rate if we are using a PS node
         node = context.event.node
         if type(node.queue) is PSQueue:
-
-            if node not in self.state_by_node:
-                self.state_by_node[node.id] = HandleArrival.State()
-            state = self.state_by_node[node.id]
                         
             # calc num jobs in service using state.
-            # !NOTE: Do not use the scheduled departures count!
-            # we cannot know if departures with time == now have already been processed.
-            node_index = context.event.node.node_map(node.id)
-            num_jobs_in_node = sum(context.network.state.get_node_state(node_index))
+            num_jobs_in_node = len(node.scheduled_departures) + 1
+            old_num_jobs_in_node = num_jobs_in_node - 1
+            service_rate = service_rate / num_jobs_in_node
 
             # update departure times for already scheduled jobs
             now = context.event.time
-            self._update_departures(now, state, num_jobs_in_node, context.scheduler)
+            _update_departures(now, node, num_jobs_in_node, old_num_jobs_in_node, context.scheduler)
 
 
         service_time = context.event.node.server.get_service([service_rate])
@@ -124,13 +104,14 @@ class HandleArrival(EventHandler):
 
         # register departure to possibly update by PS rule in case another arrival
         if type(node.queue) is PSQueue:
-            self.state_by_node[node.id].scheduled_departures.append(departure)        
+            node.scheduled_departures[job.job_id] = departure      
 
 class HandleDeparture(EventHandler):
     def __init__(self):
         super().__init__()
 
     def _handle(self, context: EventContext):
+        job = context.event.job
         job_server_str = context.event.node.id
         job_server = context.event.node.node_map(job_server_str)
         job_class = context.event.job.class_id
@@ -138,6 +119,18 @@ class HandleDeparture(EventHandler):
         # aggiornamento dello stato del sistema
         decrease = job_class-1 if job_class > 0 else job_class
         context.network.state.update((job_server, decrease), False)
+
+        # we need to update the departure times of the other jobs in service
+        # since now they are receiving a bigger service rate
+        node = context.event.node
+        if type(node.queue) is PSQueue:
+            # remove departure from scheduled departures of this node
+            node.scheduled_departures.pop(job.job_id)
+            now = context.event.time
+            num_jobs_in_node = len(node.scheduled_departures)
+            old_jobs_in_node = num_jobs_in_node + 1
+            _update_departures(now, node, num_jobs_in_node, old_jobs_in_node, context.scheduler)
+
         
         if not (job_class == 2 and job_server_str == 'A'):
             if job_server_str in ['B', 'P']:

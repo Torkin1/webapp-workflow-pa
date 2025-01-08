@@ -135,6 +135,10 @@ class Node():
         self.server = server
         self.queue = queue
         self.service_rate = service_rate
+        self.scheduled_departures = {}
+        """
+        Scheduled departure events by job id in service at this node
+        """
 
     def get_service_class_rate(self, class_type):
         if class_type > 3:
