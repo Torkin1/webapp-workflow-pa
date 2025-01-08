@@ -143,16 +143,18 @@ class NextEventScheduler:
         
         # gets event from event list and creates context
         event = self._event_list.pop(0)
-        context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
+        if not event.is_cancelled:
 
-        # intercepts event
-        self._push_notify(self._interceptors_by_topic, context, event)
+            context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
 
-        # consumes event
-        event.handle(context)
+            # intercepts event
+            self._push_notify(self._interceptors_by_topic, context, event)
 
-        # push notify subscribers
-        self._push_notify(self._subscribers_by_topic, context, event)
+            # consumes event
+            event.handle(context)
+
+            # push notify subscribers
+            self._push_notify(self._subscribers_by_topic, context, event)
 
     def schedule(self, event: Event, delay: float=0.0):
         """
@@ -161,6 +163,13 @@ class NextEventScheduler:
         """
         event.time += delay
         self._event_list.add(event)
+    
+    def cancel(self, event: Event):
+        """
+        Cancels the event from the scheduling. A cancelled event is not processed, so its handler
+        is not called nor are its subscribers/interceptors notified.
+        """
+        event.is_cancelled = True
     
     def subscribe(self, eventType: Type[Event], handler: EventHandler):
         """

@@ -32,6 +32,7 @@ class Event():
     def __init__(self, time: float, handler: EventHandler):
         self.time = time
         self.handle = handler
+        self.is_cancelled = False
 
 class JobMovementEvent(Event):
     """
