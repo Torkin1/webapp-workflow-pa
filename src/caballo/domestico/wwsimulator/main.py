@@ -1,6 +1,6 @@
 from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, JobMovementEvent
 from caballo.domestico.wwsimulator.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
-from caballo.domestico.wwsimulator.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
+from caballo.domestico.wwsimulator.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator, UtilizationEstimator
 from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
 from caballo.domestico.wwsimulator.batchmeans import BatchMeansSub, BatchMeansSimulation
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
@@ -17,6 +17,7 @@ def bm_main(experiment, lambda_val):
         bm_simulation = BatchMeansSimulation(simulation)
 
         simulation.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(NUM_ARRIVALS))
+        simulation.scheduler.subscribe(ArrivalEvent, UtilizationEstimator())
         simulation.scheduler.subscribe(DepartureEvent, BatchMeansSub(batch_size, batch_num, bm_simulation))
         simulation.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
         simulation.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
@@ -31,6 +32,7 @@ def rep_main(experiment, lambda_val):
     for _ in range(NUM_REPLICAS):
         replica = factory.create(HandleFirstArrival(), experiment, lambda_val)
         replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(100))
+        replica.scheduler.subscribe(ArrivalEvent, UtilizationEstimator())
         replica.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
         replica.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
         replica.scheduler.subscribe(JobMovementEvent, PopulationEstimator())

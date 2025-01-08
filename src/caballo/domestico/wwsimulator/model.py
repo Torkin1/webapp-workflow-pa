@@ -9,9 +9,10 @@ class Job():
     """
     A unit of work to be processed by the nodes in a simulation.
     """
-    def __init__(self, class_id: int, job_id: int):
+    def __init__(self, class_id: int, job_id: int, service_time: float):
         self.class_id = class_id
         self.job_id = job_id
+        self.service_time = service_time
 
     def class_id(self):
         return self.class_id
