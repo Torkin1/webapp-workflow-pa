@@ -15,6 +15,8 @@ class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
     RESPONSE_TIME = "response_time"
     POPULATION = "population"
+    INTERARRIVAL = "interarrival"
+    SERVICE = "service"
 
     def for_node_variant(self, node: str, variant: str):
         return f"{node}-{self.value}-{variant}"
@@ -228,3 +230,52 @@ class PopulationEstimator(EventHandler):
             print("statistics is empty")
         if context.new_batch:
             self.reset()
+
+class UtilizationEstimator(EventHandler):
+
+    class State():
+        def __init__(self):
+            self._estimator = {'service':WelfordEstimator(), 'interarrival':WelfordEstimator()}
+            self._last_arrival = None
+    
+    def __init__(self):
+        super().__init__()
+        self._states = {}
+        self._states[_GLOBAL] = UtilizationEstimator.State()
+        
+    def reset(self):
+        for state in self._states.values():
+            state._estimator = {'service':WelfordEstimator(), 'interarrival':WelfordEstimator()}
+    
+    def _estimate_utilization(self, node_id: str, event, statistics):
+        if node_id not in self._states:
+            self._states[node_id] = UtilizationEstimator.State()
+        state = self._states[node_id]
+        
+        if state._last_arrival is not None:
+        
+            interarrival = event.time - state._last_arrival
+            service_time = event.job.service_time
+
+            state._estimator['interarrival'].update(interarrival)
+            state._estimator['service'].update(service_time)
+            save_statistics(OutputStatistic.INTERARRIVAL, node_id, state._estimator['interarrival'], statistics)
+            save_statistics(OutputStatistic.SERVICE, node_id, state._estimator['service'], statistics)
+
+        
+        state._last_arrival = event.time
+    
+    def _handle(self, context):
+        
+        event = context.event
+
+        if not isinstance(event, ArrivalEvent):
+            raise ValueError(f"UtilizationEstimator can only handle ArrivalEvent, got {type(event)}")
+        
+        if event.external:
+            self._estimate_utilization(_GLOBAL, event, context.statistics)
+        self._estimate_utilization(event.node.id, event, context.statistics)
+
+        if context.new_batch:
+            self.reset()
+

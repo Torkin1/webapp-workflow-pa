@@ -24,7 +24,7 @@ class ArrivalsGeneratorSubscriber(EventHandler):
             # rigenerazione evento di arrival dall'esterno del sistema
             if self.observed_arrivals < self.max_arrivals:
                 arrival_time = context.network.get_arrivals()
-                new_job = Job(0, context.event.job.job_id+1)
+                new_job = Job(0, context.event.job.job_id+1, 0)
                 arrival = ArrivalEvent(context.event.time + arrival_time, HandleArrival(), new_job, context.network.get_node('A'))
                 arrival.external = True
                 context.scheduler.schedule(arrival)
@@ -109,6 +109,7 @@ class HandleArrival(EventHandler):
 
 
         service_time = context.event.node.server.get_service([service_rate])
+        context.event.job.service_time = service_time
         arrival_time = context.event.time
         queue_time = context.event.node.queue.get_queue_time(context.event.job, arrival_time)
         departure_time = arrival_time + service_time + queue_time
@@ -158,7 +159,7 @@ class HandleFirstArrival(HandleInit):
         super().__init__()
 
     def _handle(self, context: EventContext):
-        job = Job(0, 0)
+        job = Job(0, 0, 0)
         node = context.network.nodes[0]
         arrival = ArrivalEvent(0.0, HandleArrival(), job, node)
         arrival.external = True
