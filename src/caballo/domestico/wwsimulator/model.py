@@ -63,6 +63,11 @@ class State():
         if class_type > 3:
             raise ValueError(error)
         return sum([self.matrix[i][class_type] for i in range(self.n_nodes)])
+
+    def get_num_jobs_in_node(self, node):
+        node_index = node.node_map(node.id)
+        num_jobs_in_node = sum(self.get_node_state(node_index))
+        return num_jobs_in_node
     
 class Server():
     """

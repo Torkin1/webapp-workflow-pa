@@ -43,17 +43,12 @@ def _update_departures(now, node: Node, num_jobs_in_service, old_num_jobs_in_ser
 
         # cancel old departures and schedules a new one after recalculating the remaining service time
         scheduler.cancel(departure)
-        remaining_service_time = (departure.time - now) * (num_jobs_in_service / old_num_jobs_in_service)
+        remaining_service_time = (departure.time - now) * (num_jobs_in_service / float(old_num_jobs_in_service))
         departure_time = now + remaining_service_time
         new_departure = DepartureEvent(departure_time, HandleDeparture(), departure.job, departure.node)
         new_departure.external = departure.external
         scheduler.schedule(new_departure)
         node.scheduled_departures[departure.job.job_id] = new_departure
-
-def _get_num_jobs_in_node(node: Node, state: State):
-    node_index = node.node_map(node.id)
-    num_jobs_in_node = sum(state.get_node_state(node_index))
-    return num_jobs_in_node
 
 class HandleArrival(EventHandler):
         
@@ -72,15 +67,15 @@ class HandleArrival(EventHandler):
         context.network.state.update((job_server_int, job_class), True)
 
         # generazione evento di departure per il job corrente
-        service_rate = context.network.nodes[job_server_int].service_rate[job_class]
+        service_rate = float(context.network.nodes[job_server_int].service_rate[job_class])
         
         # rescale service rate if we are using a PS node
         node = context.event.node
         if type(node.queue) is PSQueue:
                         
             # calc num jobs in service using state.
-            num_jobs_in_node = len(node.scheduled_departures) + 1
-            old_num_jobs_in_node = num_jobs_in_node - 1
+            num_jobs_in_node = len(node.scheduled_departures) + 1 # so num_jobs_in_node > 0
+            old_num_jobs_in_node = num_jobs_in_node - 1 if num_jobs_in_node > 1 else num_jobs_in_node
             service_rate = service_rate / num_jobs_in_node
 
             # update departure times for already scheduled jobs
