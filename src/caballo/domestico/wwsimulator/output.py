@@ -259,8 +259,9 @@ class UtilizationEstimator(EventHandler):
 
             state._estimator['interarrival'].update(interarrival)
             state._estimator['service'].update(service_time)
-            save_statistics(OutputStatistic.INTERARRIVAL, node_id, state._estimator['interarrival'], statistics)
-            save_statistics(OutputStatistic.SERVICE, node_id, state._estimator['service'], statistics)
+            if(node_id != "SYSTEM"):
+                save_statistics(OutputStatistic.INTERARRIVAL, node_id, state._estimator['interarrival'], statistics)
+                save_statistics(OutputStatistic.SERVICE, node_id, state._estimator['service'], statistics)
 
         
         state._last_arrival = event.time
