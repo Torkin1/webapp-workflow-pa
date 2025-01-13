@@ -10,6 +10,7 @@ from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, E
 from caballo.domestico.wwsimulator.statistics import WelfordEstimator
 
 _GLOBAL = "SYSTEM" 
+_NODES = ["A", "B", "P"]
 
 class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
@@ -40,8 +41,7 @@ class ThroughputEstimator(EventHandler):
     class State():
         def __init__(self):
             self._estimator = WelfordEstimator()
-            self._last_completion_time = None
-            self._concurrent_completions = 0
+            self._completion_count = 0
     
     def __init__(self):
         super().__init__()
@@ -50,6 +50,7 @@ class ThroughputEstimator(EventHandler):
     
     def reset(self):
         for state in self._states.values():
+            state._completion_count = 0
             state._estimator = WelfordEstimator()
     
     def _estimate_throughput(self, node_id: str, event, statistics):
@@ -57,32 +58,13 @@ class ThroughputEstimator(EventHandler):
             self._states[node_id] = ThroughputEstimator.State()
         state = self._states[node_id]
         
-        # first completion ever observed is not used to estimate throughput
-        # as we need at least one completion to set a reference starting time
-        if state._last_completion_time is not None:
-        
-            delta = event.time - state._last_completion_time
-            state._concurrent_completions += 1
+        state._completion_count += 1
 
-            # concurrent completions are counted in the next non-concurrent sample.
-            #
-            # |---------------------------------------| delta
-            # ^                                       ^
-            # n concurrent completions,               first non-concurrent completion,
-            # no sample update occurs                 sample update will count the 
-            #                                         concurrent completions too 
-
-
-            if delta > 0:
-                sample = state._concurrent_completions / delta                
-                state._estimator.update(sample)
-                state._concurrent_completions = 0
-
-                # update throughput in statistics object
-                save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
-        
-        state._last_completion_time = event.time
-    
+        # update throughput in statistics object
+        if event.external:
+            state._estimator.update(state._completion_count / event.time)
+            save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+            
     def _handle(self, context):
         
         event = context.event
@@ -94,7 +76,10 @@ class ThroughputEstimator(EventHandler):
         # between two consecutive job completions
         if event.external:
             self._estimate_throughput(_GLOBAL, event, context.statistics)
-        self._estimate_throughput(event.node.id, event, context.statistics)
+            for n in _NODES:
+                self._estimate_throughput(n, event, context.statistics)
+        else:
+            self._estimate_throughput(event.node.id, event, context.statistics)
 
         if context.new_batch:
             self.reset()
