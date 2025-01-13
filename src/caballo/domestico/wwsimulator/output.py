@@ -1,17 +1,11 @@
-"""
-NOTE: the estimators (reasonably) assume that a departure 
-shall always be preceded by an arrival
-"""
-
 from abc import ABC
 from enum import Enum
 from typing import Iterable, Type
 from caballo.domestico.wwsimulator.model import Job
 from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent
-from caballo.domestico.wwsimulator.statistics import WelfordEstimator
+from caballo.domestico.wwsimulator.statistics import WelfordEstimator, WelfordTimeAveragedEstimator
 
 _GLOBAL = "SYSTEM"
-_NODES = ["A", "B", "P"]
 
 class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
@@ -29,10 +23,13 @@ class Timespan():
         self.end = None
 
 def save_statistics(output_statistic: OutputStatistic, node_id: str, estimator: WelfordEstimator, statistics: dict):
-    statistics[output_statistic.for_node_variant(node_id, "avg")] = estimator.avg
-    statistics[output_statistic.for_node_variant(node_id, "std")] = estimator.std
-    statistics[output_statistic.for_node_variant(node_id, "max")] = estimator.max
-    statistics[output_statistic.for_node_variant(node_id, "min")] = estimator.min
+    save_statistic_value(output_statistic, node_id, estimator.avg, "avg", statistics)
+    save_statistic_value(output_statistic, node_id, estimator.std, "std", statistics)
+    save_statistic_value(output_statistic, node_id, estimator.max, "max", statistics)
+    save_statistic_value(output_statistic, node_id, estimator.min, "min", statistics)
+
+def save_statistic_value(output_statistic: OutputStatistic, node_id: str, value: float, variant: str, statistics: dict):
+    statistics[output_statistic.for_node_variant(node_id, variant)] = value
 
 class ThroughputEstimator(EventHandler):
     """
@@ -41,18 +38,19 @@ class ThroughputEstimator(EventHandler):
 
     class State():
         def __init__(self):
-            self._estimator = WelfordEstimator()
             self._completion_count = 0
     
     def __init__(self):
         super().__init__()
         self._states = {}
         self._states[_GLOBAL] = ThroughputEstimator.State()
+        self.observation_time_start = None
     
     def reset(self):
         for state in self._states.values():
             state._completion_count = 0
-            state._estimator = WelfordEstimator()
+        self.observation_time_start = None
+
     
     def _estimate_throughput(self, node_id: str, event, statistics):
         if node_id not in self._states:
@@ -60,11 +58,28 @@ class ThroughputEstimator(EventHandler):
         state = self._states[node_id]
         
         state._completion_count += 1
+        
+        # first completion ever observed is not used to estimate throughput
+        # as we need at least one completion to set a reference starting time
+        if self.observation_time_start is not None:
+            
+            # concurrent completions are counted in the next non-concurrent sample.
+            #
+            # |---------------------------------------| delta
+            # ^                                       ^
+            # n concurrent completions,               first non-concurrent completion,
+            # no sample update occurs                 sample update will count the 
+            #                                         concurrent completions too             
+            observation_time_end = event.time
+            observation_time_delta = observation_time_end - self.observation_time_start
+            if observation_time_delta > 0:
 
-        # update throughput in statistics object
-        if event.external:
-            state._estimator.update(state._completion_count / event.time)
-            save_statistics(OutputStatistic.THROUGHPUT, node_id, state._estimator, statistics)
+                sample = float(state._completion_count) / observation_time_delta
+                
+                # update time-averaged throughput in statistics object
+                save_statistic_value(OutputStatistic.THROUGHPUT, node_id, sample, "avg", statistics)
+        else:
+            self.observation_time_start = event.time
             
     def _handle(self, context):
         
@@ -72,15 +87,10 @@ class ThroughputEstimator(EventHandler):
 
         self.halt_if_wrong_event(event, DepartureEvent)
         
-        # estimates time averaged throughput by computing the reciprocal of the time
-        # between two consecutive job completions
         if event.external:
             self._estimate_throughput(_GLOBAL, event, context.statistics)
-            for n in _NODES:
-                self._estimate_throughput(n, event, context.statistics)
-        else:
-            self._estimate_throughput(event.node.id, event, context.statistics)
-
+        self._estimate_throughput(event.node.id, event, context.statistics)
+        
         if context.new_batch:
             self.reset()
 
