@@ -9,10 +9,10 @@ class Job():
     """
     A unit of work to be processed by the nodes in a simulation.
     """
-    def __init__(self, class_id: int, job_id: int, service_time: float):
+    def __init__(self, class_id: int, job_id: int):
         self.class_id = class_id
         self.job_id = job_id
-        self.service_time = service_time
+        self.service_time = None
 
     def class_id(self):
         return self.class_id
@@ -86,8 +86,6 @@ class Server():
         rngs.selectStream(self.prng_stream)
         if self.server_distribution == 'exp':
             return des.Exponential(1.0 / params[0])
-        elif self.server_distribution == 'uniform':
-            return des.Uniform(params[0], [1])
         else:
             raise ValueError(distr_error)
 
@@ -183,8 +181,6 @@ class Network():
         rngs.selectStream(EXTERNAL_ARRIVALS)
         if self.job_arrival_distr == 'poisson':
             return des.Exponential(1.0 / self.job_arrival_param[0])
-        elif self.job_arrival_distr == 'uniform':
-            return des.Uniform(self.job_arrival_param[0], [1])
         else:
             raise ValueError(distr_error)
         

@@ -23,6 +23,10 @@ class EventHandler(Callable):
 
     def __call__(self, context: EventContext):
         self._handle(context)
+    
+    def halt_if_wrong_event(self, event_actual, event_type_expected):
+        if not isinstance(event_actual, event_type_expected):
+            raise ValueError(f"{self.__qualname__} can only handle {event_type_expected}, got {type(event_actual)}")
 
 class Event():
     """

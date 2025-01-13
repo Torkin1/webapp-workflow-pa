@@ -3,21 +3,22 @@ NOTE: the estimators (reasonably) assume that a departure
 shall always be preceded by an arrival
 """
 
+from abc import ABC
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Type
 from caballo.domestico.wwsimulator.model import Job
-from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, EventHandler, JobMovementEvent
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent
 from caballo.domestico.wwsimulator.statistics import WelfordEstimator
 
-_GLOBAL = "SYSTEM" 
+_GLOBAL = "SYSTEM"
 _NODES = ["A", "B", "P"]
 
 class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
     RESPONSE_TIME = "response_time"
     POPULATION = "population"
-    INTERARRIVAL = "interarrival"
-    SERVICE = "service"
+    INTERARRIVAL_TIME = "interarrival"
+    SERVICE_TIME = "service"
 
     def for_node_variant(self, node: str, variant: str):
         return f"{node}-{self.value}-{variant}"
@@ -69,8 +70,7 @@ class ThroughputEstimator(EventHandler):
         
         event = context.event
 
-        if not isinstance(event, DepartureEvent):
-            raise ValueError(f"ThroughputEstimator can only handle DepartureEvent, got {type(event)}")
+        self.halt_if_wrong_event(event, DepartureEvent)
         
         # estimates time averaged throughput by computing the reciprocal of the time
         # between two consecutive job completions
@@ -109,8 +109,7 @@ class ResponseTimeEstimator(EventHandler):
     def _handle(self, context):
 
         event = context.event
-        if not isinstance(event, JobMovementEvent):
-            raise ValueError(f"ResponseTimeEstimator can only subscribe to JobMovementEvent, got {type(event)}")        
+        self.halt_if_wrong_event(event, JobMovementEvent)        
 
         if isinstance(event, DepartureEvent):
             self._handle_departure(context)
@@ -196,8 +195,7 @@ class PopulationEstimator(EventHandler):
         
     def _handle(self, context):
         job_movement = context.event
-        if not isinstance(job_movement, JobMovementEvent):
-            raise ValueError(f"PopulationEstimator can only subscribe to JobMovementEvent, got {type(job_movement)}")
+        self.halt_if_wrong_event(job_movement, JobMovementEvent)
         
         # we increase o decrease the population count based on the job movement direction
         if isinstance(job_movement, ArrivalEvent):
@@ -216,52 +214,85 @@ class PopulationEstimator(EventHandler):
         if context.new_batch:
             self.reset()
 
-class UtilizationEstimator(EventHandler):
+class ServiceTimeEstimator(EventHandler):
+    """
+    Subscribes to job completions only
+    """
 
     class State():
         def __init__(self):
-            self._estimator = {'service':WelfordEstimator(), 'interarrival':WelfordEstimator()}
-            self._last_arrival = None
+            self.estimator = WelfordEstimator()
     
     def __init__(self):
         super().__init__()
-        self._states = {}
-        self._states[_GLOBAL] = UtilizationEstimator.State()
-        
-    def reset(self):
-        for state in self._states.values():
-            state._estimator = {'service':WelfordEstimator(), 'interarrival':WelfordEstimator()}
+        self._states_by_node = {}
     
-    def _estimate_utilization(self, node_id: str, event, statistics):
-        if node_id not in self._states:
-            self._states[node_id] = UtilizationEstimator.State()
-        state = self._states[node_id]
-        
-        if state._last_arrival is not None:
-        
-            interarrival = event.time - state._last_arrival
-            service_time = event.job.service_time
+    def reset(self):
+        for state in self._states_by_node.values():
+            state.estimator = WelfordEstimator()
 
-            state._estimator['interarrival'].update(interarrival)
-            state._estimator['service'].update(service_time)
-            if(node_id != "SYSTEM"):
-                save_statistics(OutputStatistic.INTERARRIVAL, node_id, state._estimator['interarrival'], statistics)
-                save_statistics(OutputStatistic.SERVICE, node_id, state._estimator['service'], statistics)
-
-        
-        state._last_arrival = event.time
     
     def _handle(self, context):
         
         event = context.event
-
-        if not isinstance(event, ArrivalEvent):
-            raise ValueError(f"UtilizationEstimator can only handle ArrivalEvent, got {type(event)}")
+        self.halt_if_wrong_event(event, DepartureEvent)
         
-        if event.external:
-            self._estimate_utilization(_GLOBAL, event, context.statistics)
-        self._estimate_utilization(event.node.id, event, context.statistics)
+        job = event.job
+        node = event.node
+
+        if node.id not in self._states_by_node:
+            self._states_by_node[node.id] = ServiceTimeEstimator.State()
+        state = self._states_by_node[node.id]
+
+        state.estimator.update(job.service_time)
+        job.service_time = None
+
+        save_statistics(OutputStatistic.SERVICE_TIME, node.id, state.estimator, context.statistics)
 
         if context.new_batch:
             self.reset()
 
+class InterarrivalTimeEstimator(EventHandler):
+    """
+    Subscribes to job arrivals only
+    """
+
+    class State():
+        def __init__(self):
+            self._estimator = WelfordEstimator()
+            self._last_arrival_time = None
+    
+    def __init__(self):
+        super().__init__()
+        self._states = {}
+        self._states[_GLOBAL] = InterarrivalTimeEstimator.State()
+    
+    def reset(self):
+        for state in self._states.values():
+            state._estimator = WelfordEstimator()
+    
+    def _estimate_interarrival_time(self, node_id: str, event, statistics):
+        if node_id not in self._states:
+            self._states[node_id] = InterarrivalTimeEstimator.State()
+        state = self._states[node_id]
+        
+        # first completion ever observed is not used to update the estimator
+        # as we need at least one sample to set a reference starting time
+        if state._last_arrival_time is not None:
+        
+            delta = event.time - state._last_arrival_time         
+            state._estimator.update(delta)
+
+            save_statistics(OutputStatistic.INTERARRIVAL_TIME, node_id, state._estimator, statistics)
+        
+        state._last_arrival_time = event.time
+    
+    def _handle(self, context):
+        
+        event = context.event
+        self.halt_if_wrong_event(event, ArrivalEvent)
+
+        self._estimate_interarrival_time(event.node.id, event, context.statistics)
+
+        if context.new_batch:
+            self.reset()
