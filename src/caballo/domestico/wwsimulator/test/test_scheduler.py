@@ -8,6 +8,17 @@ from caballo.domestico.wwsimulator.simulation import NextEventScheduler, Simulat
 from blist import sortedlist
 
 
+class MockResettableSubscriber(EventHandler):
+    def _handle(self, context):
+        pass
+    
+    def reset(self):
+        print("Resetting subscriber")
+
+class MockSubscriber(EventHandler):
+    def _handle(self, context):
+        pass
+    
 class MockEventHandler(EventHandler):
     def _handle(self, context):
         print("Handling event of type %s", type(context.event));
@@ -34,7 +45,13 @@ class TestEventObserver(unittest.TestCase):
         scheduler = simulation.scheduler
         while scheduler.has_next():
             scheduler.next()
-        
+
+class TestResetSubscribers(unittest.TestCase):
+    def test_reset_subscribers(self):
+        scheduler = NextEventScheduler(None)
+        scheduler.subscribe(Event, MockSubscriber())
+        scheduler.subscribe(Event, MockResettableSubscriber())
+        scheduler.reset_subscribers()
 class NotificationEventA(EventHandler):
     def _handle(self, context):
         print("Received notification for event A")

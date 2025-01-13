@@ -2,7 +2,7 @@ from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, J
 from caballo.domestico.wwsimulator.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
 from caballo.domestico.wwsimulator.output import InterarrivalTimeEstimator, ServiceTimeEstimator, ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
 from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
-from caballo.domestico.wwsimulator.batchmeans import BatchMeansSub, BatchMeansSimulation
+from caballo.domestico.wwsimulator.batchmeans import BatchMeansInterceptor, BatchMeansSimulation
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
 
 from caballo.domestico.wwsimulator.simulation import SimulationFactory
@@ -29,7 +29,8 @@ def bm_main(experiment, lambda_val, seed):
 
     simulation.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(num_arrivals))
     subscribe_estimators(simulation)
-    simulation.scheduler.subscribe(DepartureEvent, BatchMeansSub(batch_size, batch_num, bm_simulation))
+    
+    simulation.scheduler.intercept(DepartureEvent, BatchMeansInterceptor(batch_size, batch_num, bm_simulation))
 
     bm_simulation.run()
     bm_simulation.print_statistics()

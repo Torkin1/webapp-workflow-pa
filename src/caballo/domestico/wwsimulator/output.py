@@ -76,7 +76,7 @@ class ThroughputEstimator(EventHandler):
 
                 sample = float(state._completion_count) / observation_time_delta
                 
-                # update time-averaged throughput in statistics object
+                # update throughput in statistics object
                 save_statistic_value(OutputStatistic.THROUGHPUT, node_id, sample, "avg", statistics)
         else:
             self.observation_time_start = event.time
@@ -91,9 +91,6 @@ class ThroughputEstimator(EventHandler):
             self._estimate_throughput(_GLOBAL, event, context.statistics)
         self._estimate_throughput(event.node.id, event, context.statistics)
         
-        if context.new_batch:
-            self.reset()
-
 class ResponseTimeEstimator(EventHandler):
     """
     Subscribes to job movements (arrivals and departures).
@@ -171,9 +168,6 @@ class ResponseTimeEstimator(EventHandler):
             self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics)
         self._estimate_response_time(node.id, job, job_movement, context.statistics)
 
-        if context.new_batch:
-            self.reset()
-
 class PopulationEstimator(EventHandler):
     """
     Subscribes to job movements
@@ -221,8 +215,6 @@ class PopulationEstimator(EventHandler):
         self._update_population(job_movement.node.id, job_movement, statistics, count)
         if context.statistics == {}:
             print("statistics is empty")
-        if context.new_batch:
-            self.reset()
 
 class ServiceTimeEstimator(EventHandler):
     """
@@ -258,9 +250,6 @@ class ServiceTimeEstimator(EventHandler):
         job.service_time = None
 
         save_statistics(OutputStatistic.SERVICE_TIME, node.id, state.estimator, context.statistics)
-
-        if context.new_batch:
-            self.reset()
 
 class InterarrivalTimeEstimator(EventHandler):
     """
@@ -303,6 +292,3 @@ class InterarrivalTimeEstimator(EventHandler):
         self.halt_if_wrong_event(event, ArrivalEvent)
 
         self._estimate_interarrival_time(event.node.id, event, context.statistics)
-
-        if context.new_batch:
-            self.reset()

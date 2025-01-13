@@ -183,3 +183,19 @@ class NextEventScheduler:
         Such handler can change the context of the event before it is actually processed.
         """
         self._subscribe(eventType, handler, self._interceptors_by_topic)
+    
+    def reset_subscribers(self):
+        """
+        For each subscriber, tries to reset it.
+        A subscriber must implement a reset method if it has a state that must be reset
+        during a simulation run (i.e. among batches).
+        """
+        for topic in self._subscribers_by_topic:
+            seen = []
+            for subscriber in self._subscribers_by_topic[topic]:
+                if subscriber not in seen:
+                    try:
+                        subscriber.reset()
+                    except AttributeError:
+                        pass
+                    seen.append(subscriber)

@@ -1,5 +1,5 @@
+from abc import ABC
 from math import inf, sqrt
-
 
 class WelfordEstimator():
     """
