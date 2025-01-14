@@ -9,6 +9,8 @@ _GLOBAL = "SYSTEM"
 
 class OutputStatistic(Enum):
     THROUGHPUT = "throughput"
+    COMPLETION_COUNT = "completions"
+    SIM_TIME = "simtime"
     RESPONSE_TIME = "response_time"
     POPULATION = "population"
     INTERARRIVAL_TIME = "interarrival"
@@ -45,11 +47,12 @@ class ThroughputEstimator(EventHandler):
         self._states = {}
         self._states[_GLOBAL] = ThroughputEstimator.State()
         self.observation_time_start = None
+        self.current_time = 0
     
     def reset(self):
         for state in self._states.values():
             state._completion_count = 0
-        self.observation_time_start = None
+        self.observation_time_start = self.current_time
 
     
     def _estimate_throughput(self, node_id: str, event, statistics):
@@ -74,10 +77,15 @@ class ThroughputEstimator(EventHandler):
             observation_time_delta = observation_time_end - self.observation_time_start
             if observation_time_delta > 0:
 
-                sample = float(state._completion_count) / observation_time_delta
+                count = float(state._completion_count) 
+                delta_time = observation_time_delta
                 
                 # update throughput in statistics object
-                save_statistic_value(OutputStatistic.THROUGHPUT, node_id, sample, "avg", statistics)
+                save_statistic_value(OutputStatistic.COMPLETION_COUNT, node_id, count, "val", statistics)
+                if event.external:
+                    self.current_time = event.time
+                    for i in ['A', 'B', 'P', 'SYSTEM']:
+                        save_statistic_value(OutputStatistic.SIM_TIME, i, delta_time, "val", statistics)
         else:
             self.observation_time_start = event.time
             
