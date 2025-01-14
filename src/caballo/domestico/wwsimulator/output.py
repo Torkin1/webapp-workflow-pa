@@ -15,6 +15,7 @@ class OutputStatistic(Enum):
     SERVICE_TIME = "service"
     OBSERVATION_TIME = "observation_time"
     COMPLETIONS = "completions"
+    BUSY_TIME = "busytime"
 
     def for_node_variant(self, node: str, variant: str):
         return f"{node}-{self.value}-{variant}"
@@ -44,7 +45,7 @@ class CompletionsEstimator(EventHandler):
         self._states = {}
         self._states[_GLOBAL] = CompletionsEstimator.State()
     
-    def reset(self):
+    def reset(self, context=None):
         for state in self._states.values():
             state._completion_count = 0
 
@@ -86,7 +87,7 @@ class ResponseTimeEstimator(EventHandler):
         self._states_by_node = {}
         self._states_by_node[_GLOBAL] = ResponseTimeEstimator.State()
     
-    def reset(self):
+    def reset(self, context=None):
         for state in self._states_by_node.values():
             state.estimator = WelfordEstimator()
 
@@ -168,7 +169,7 @@ class ObservationTimeEstimator(EventHandler):
             state.observation_time = event.time - state.observation_time_start
             save_statistic_value(OutputStatistic.OBSERVATION_TIME, _GLOBAL, state.observation_time, "val", context.statistics)
 
-    def reset(self):
+    def reset(self, context=None):
         self.state = ObservationTimeEstimator.State()
 
 
@@ -187,7 +188,7 @@ class PopulationEstimator(EventHandler):
         self._states_by_node = {}
         self._states_by_node[_GLOBAL] = PopulationEstimator.State()
     
-    def reset(self):
+    def reset(self, context=None):
         for state in self._states_by_node.values():
             state.estimator = WelfordEstimator()
 
@@ -233,7 +234,7 @@ class ServiceTimeEstimator(EventHandler):
         super().__init__()
         self._states_by_node = {}
     
-    def reset(self):
+    def reset(self, context=None):
         for state in self._states_by_node.values():
             state.estimator = WelfordEstimator()
 
@@ -270,7 +271,7 @@ class InterarrivalTimeEstimator(EventHandler):
         self._states = {}
         self._states[_GLOBAL] = InterarrivalTimeEstimator.State()
     
-    def reset(self):
+    def reset(self, context=None):
         for state in self._states.values():
             state._estimator = WelfordEstimator()
     
@@ -296,3 +297,88 @@ class InterarrivalTimeEstimator(EventHandler):
         self.halt_if_wrong_event(event, ArrivalEvent)
 
         self._estimate_interarrival_time(event.node.id, event, context.statistics)
+    
+class BusytimeEstimator(EventHandler):
+    """
+    Subscribes to job movements.
+    """
+
+    class State():
+        def __init__(self):
+            self.busytime = 0
+            self.start_busy_period_time = None
+        
+    def __init__(self):
+        super().__init__()
+        self._states_by_node = {}
+        self._states_by_node[_GLOBAL] = BusytimeEstimator.State()
+    
+    def _update_busy_time(self, node_id, state, departure_time, statistics):
+        state.busytime += departure_time - state.start_busy_period_time
+        state.start_busy_period_time = None
+        save_statistic_value(OutputStatistic.BUSY_TIME, node_id, state.busytime, "val", statistics)
+        
+    def reset(self, context=None):
+        
+        # we treat the reset in the middle of a busy period as if the server went idle at the reset time
+        # and it immediately started a new busy period
+        reset_time = context.event.time
+        for node_id, state in self._states_by_node.items():
+            if state.start_busy_period_time is not None:
+                
+                # last update before reset
+                self._update_busy_time(node_id, state, reset_time, context.statistics)
+                
+                # restarts busy period
+                state.start_busy_period_time = reset_time
+            state.busytime = 0
+    
+    def _handle_arrival(self, arrival, state):
+        
+        if state.start_busy_period_time is None:
+            # server was idle, this arrival starts a busy period
+            state.start_busy_period_time = arrival.time
+        else:
+            # server was already busy, we ignore the arrival
+            pass
+
+    def _handle_departure(self, departure, state, node_id, network, statistics):
+        
+        #FIXME: TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'
+
+        if node_id == _GLOBAL:
+            # we check for every node if they have scheduled departures
+            for node in network.nodes:
+                if len(node.scheduled_departures) > 0:
+                    return
+            self._update_busy_time(node_id, state, departure.time, statistics)
+        
+        # if after the departure no more jobs are scheduled for departure at the node,
+        # we can close the busy period
+        else:
+            if len(departure.node.scheduled_departures) == 0:
+                self._update_busy_time(node_id, state, departure.time, statistics)
+    
+    def _handle_job_movement(self, node_id, job_movement, network, statistics):
+        
+        if node_id not in self._states_by_node:
+            self._states_by_node[node_id] = BusytimeEstimator.State()
+        state = self._states_by_node[node_id]
+        
+        if isinstance(job_movement, ArrivalEvent):
+            self._handle_arrival(job_movement, state)
+        elif isinstance(job_movement, DepartureEvent):
+            self._handle_departure(job_movement, state, node_id, network, statistics)
+        else:
+            raise ValueError(f"{type(self).__qualname__} can only handle {ArrivalEvent.__qualname__} and {DepartureEvent.__qualname__}, got {type(job_movement).__qualname__}")
+    
+    def _handle(self, context):
+        event = context.event
+        self.halt_if_wrong_event(event, JobMovementEvent)
+        
+        if event.external:
+            self._handle_job_movement(_GLOBAL, event, context.network, context.statistics)
+        self._handle_job_movement(event.node.id, event, context.network, context.statistics)
+        
+
+        

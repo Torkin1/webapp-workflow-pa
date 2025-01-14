@@ -184,18 +184,19 @@ class NextEventScheduler:
         """
         self._subscribe(eventType, handler, self._interceptors_by_topic)
     
-    def reset_subscribers(self):
+    def reset_subscribers(self, context: EventContext):
         """
         For each subscriber, tries to reset it.
         A subscriber must implement a reset method if it has a state that must be reset
         during a simulation run (i.e. among batches).
+        @param context: context of the event triggering the reset
         """
         for topic in self._subscribers_by_topic:
             seen = []
             for subscriber in self._subscribers_by_topic[topic]:
                 if subscriber not in seen:
                     try:
-                        subscriber.reset()
+                        subscriber.reset(context)
                     except AttributeError:
                         pass
                     seen.append(subscriber)

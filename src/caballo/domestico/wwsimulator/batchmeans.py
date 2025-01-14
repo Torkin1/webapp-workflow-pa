@@ -71,7 +71,7 @@ class BatchMeansInterceptor(EventHandler):
             
             # resets resettable estimators
             scheduler = self.simulation.scheduler
-            scheduler.reset_subscribers()
+            scheduler.reset_subscribers(context)
             
             self.job_completed = 0
             self.batch_completed += 1
@@ -80,7 +80,6 @@ class BatchMeansInterceptor(EventHandler):
                     self.batch_statistics[key] = []
                 self.batch_statistics[key].append(context.statistics[key])
             context.statistics = {}
-            # context.new_batch = True
             if self.batch_completed == self.batch_num:
                 self.simulation.statistics = self.batch_statistics
                 

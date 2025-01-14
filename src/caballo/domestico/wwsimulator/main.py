@@ -7,7 +7,7 @@ from caballo.domestico.wwsimulator.events import (ArrivalEvent, DepartureEvent,
                                                   Event, JobMovementEvent)
 from caballo.domestico.wwsimulator.handlers import (
     ArrivalsGeneratorSubscriber, HandleFirstArrival)
-from caballo.domestico.wwsimulator.output import (CompletionsEstimator,
+from caballo.domestico.wwsimulator.output import (BusytimeEstimator, CompletionsEstimator,
                                                   InterarrivalTimeEstimator,
                                                   ObservationTimeEstimator,
                                                   PopulationEstimator,
@@ -19,6 +19,7 @@ from caballo.domestico.wwsimulator.simulation import SimulationFactory
 SEED = int("5E1BE110", 16) # :-*
 
 def subscribe_estimators(simulation):
+    simulation.scheduler.subscribe(JobMovementEvent, BusytimeEstimator())
     simulation.scheduler.subscribe(Event, ObservationTimeEstimator())
     simulation.scheduler.subscribe(DepartureEvent, CompletionsEstimator())
     simulation.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
