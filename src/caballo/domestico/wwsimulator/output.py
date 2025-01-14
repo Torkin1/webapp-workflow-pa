@@ -165,8 +165,7 @@ class ObservationTimeEstimator(EventHandler):
         if state.observation_time_start is None:
             state.observation_time_start = event.time
         else:
-            observation_time_delta = event.time - state.observation_time_start
-            state.observation_time += observation_time_delta
+            state.observation_time = event.time - state.observation_time_start
             save_statistic_value(OutputStatistic.OBSERVATION_TIME, _GLOBAL, state.observation_time, "val", context.statistics)
 
     def reset(self):
