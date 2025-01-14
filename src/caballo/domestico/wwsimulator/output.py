@@ -1,18 +1,20 @@
-from abc import ABC
 from enum import Enum
-from typing import Iterable, Type
+
+from caballo.domestico.wwsimulator.events import (ArrivalEvent, DepartureEvent,
+                                                  Event, EventHandler,
+                                                  JobMovementEvent)
 from caballo.domestico.wwsimulator.model import Job
-from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent
-from caballo.domestico.wwsimulator.statistics import WelfordEstimator, WelfordTimeAveragedEstimator
+from caballo.domestico.wwsimulator.statistics import WelfordEstimator
 
 _GLOBAL = "SYSTEM"
 
 class OutputStatistic(Enum):
-    THROUGHPUT = "throughput"
     RESPONSE_TIME = "response_time"
     POPULATION = "population"
     INTERARRIVAL_TIME = "interarrival"
     SERVICE_TIME = "service"
+    OBSERVATION_TIME = "observation_time"
+    COMPLETIONS = "completions"
 
     def for_node_variant(self, node: str, variant: str):
         return f"{node}-{self.value}-{variant}"
@@ -31,10 +33,7 @@ def save_statistics(output_statistic: OutputStatistic, node_id: str, estimator: 
 def save_statistic_value(output_statistic: OutputStatistic, node_id: str, value: float, variant: str, statistics: dict):
     statistics[output_statistic.for_node_variant(node_id, variant)] = value
 
-class ThroughputEstimator(EventHandler):
-    """
-    Subscribes to job completions only
-    """
+class CompletionsEstimator(EventHandler):
 
     class State():
         def __init__(self):
@@ -43,43 +42,20 @@ class ThroughputEstimator(EventHandler):
     def __init__(self):
         super().__init__()
         self._states = {}
-        self._states[_GLOBAL] = ThroughputEstimator.State()
-        self.observation_time_start = None
+        self._states[_GLOBAL] = CompletionsEstimator.State()
     
     def reset(self):
         for state in self._states.values():
             state._completion_count = 0
-        self.observation_time_start = None
 
     
     def _estimate_throughput(self, node_id: str, event, statistics):
         if node_id not in self._states:
-            self._states[node_id] = ThroughputEstimator.State()
+            self._states[node_id] = CompletionsEstimator.State()
         state = self._states[node_id]
         
         state._completion_count += 1
-        
-        # first completion ever observed is not used to estimate throughput
-        # as we need at least one completion to set a reference starting time
-        if self.observation_time_start is not None:
-            
-            # concurrent completions are counted in the next non-concurrent sample.
-            #
-            # |---------------------------------------| delta
-            # ^                                       ^
-            # n concurrent completions,               first non-concurrent completion,
-            # no sample update occurs                 sample update will count the 
-            #                                         concurrent completions too             
-            observation_time_end = event.time
-            observation_time_delta = observation_time_end - self.observation_time_start
-            if observation_time_delta > 0:
-
-                sample = float(state._completion_count) / observation_time_delta
-                
-                # update throughput in statistics object
-                save_statistic_value(OutputStatistic.THROUGHPUT, node_id, sample, "avg", statistics)
-        else:
-            self.observation_time_start = event.time
+        save_statistic_value(OutputStatistic.COMPLETIONS, node_id, state._completion_count, "val", statistics)
             
     def _handle(self, context):
         
@@ -90,10 +66,11 @@ class ThroughputEstimator(EventHandler):
         if event.external:
             self._estimate_throughput(_GLOBAL, event, context.statistics)
         self._estimate_throughput(event.node.id, event, context.statistics)
+
         
 class ResponseTimeEstimator(EventHandler):
     """
-    Subscribes to job movements (arrivals and departures).
+    Subscribes to all events.
     """
     
     class State():
@@ -167,6 +144,34 @@ class ResponseTimeEstimator(EventHandler):
         if job_movement.external:
             self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics)
         self._estimate_response_time(node.id, job, job_movement, context.statistics)
+
+class ObservationTimeEstimator(EventHandler):
+
+    class State():
+        
+        def __init__(self):
+            self.observation_time_start = None
+            self.observation_time = 0
+    
+    def __init__(self):
+        self.reset()
+    
+    def _handle(self, context):
+
+        event = context.event
+        self.halt_if_wrong_event(event, Event)
+
+        state = self.state
+        if state.observation_time_start is None:
+            state.observation_time_start = event.time
+        else:
+            observation_time_delta = event.time - state.observation_time_start
+            state.observation_time += observation_time_delta
+            save_statistic_value(OutputStatistic.OBSERVATION_TIME, _GLOBAL, state.observation_time, "val", context.statistics)
+
+    def reset(self):
+        self.state = ObservationTimeEstimator.State()
+
 
 class PopulationEstimator(EventHandler):
     """

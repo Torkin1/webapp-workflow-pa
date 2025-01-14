@@ -1,7 +1,7 @@
 from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
 from caballo.domestico.wwsimulator.handlers import HandleFirstArrival, EventHandler
 from caballo.domestico.wwsimulator.events import DepartureEvent
-from caballo.domestico.wwsimulator.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
+from caballo.domestico.wwsimulator.output import ResponseTimeEstimator, PopulationEstimator
 from pdsteele.des import rngs
 import json
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
