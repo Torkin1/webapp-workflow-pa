@@ -53,7 +53,7 @@ class Simulation():
     def print_statistics(self):
         simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S'}
         simulation_name = simulation_map[type(self).__name__]
-        statistic_path = os.path.join(STATISTICS_DIR, self.study)
+        statistic_path = os.path.join(STATISTICS_DIR, self.study, type(self).__name__)
         if not os.path.exists(statistic_path):
             os.makedirs(statistic_path)
 

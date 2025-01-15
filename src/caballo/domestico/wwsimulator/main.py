@@ -60,7 +60,7 @@ if __name__ == "__main__":
         for lambda_val in experiment['arrival_distr']['params']:
              print("lambda_val: ", lambda_val)
              bm_main(experiment, lambda_val, SEED)
-             #rep_main(experiment, lambda_val, SEED)
+             rep_main(experiment, lambda_val, SEED)
 
 
 
