@@ -1,17 +1,27 @@
-from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, JobMovementEvent
-from caballo.domestico.wwsimulator.handlers import ArrivalsGeneratorSubscriber, HandleFirstArrival
-from caballo.domestico.wwsimulator.output import InterarrivalTimeEstimator, ServiceTimeEstimator, ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
-from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
-from caballo.domestico.wwsimulator.batchmeans import BatchMeansInterceptor, BatchMeansSimulation
-from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
-
-from caballo.domestico.wwsimulator.simulation import SimulationFactory
 import json
+
+from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
+from caballo.domestico.wwsimulator.batchmeans import (BatchMeansInterceptor,
+                                                      BatchMeansSimulation)
+from caballo.domestico.wwsimulator.events import (ArrivalEvent, DepartureEvent,
+                                                  Event, JobMovementEvent)
+from caballo.domestico.wwsimulator.handlers import (
+    ArrivalsGeneratorSubscriber, HandleFirstArrival)
+from caballo.domestico.wwsimulator.output import (BusytimeEstimator, CompletionsEstimator,
+                                                  InterarrivalTimeEstimator,
+                                                  ObservationTimeEstimator,
+                                                  PopulationEstimator,
+                                                  ResponseTimeEstimator,
+                                                  ServiceTimeEstimator)
+from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
+from caballo.domestico.wwsimulator.simulation import SimulationFactory
 
 SEED = int("5E1BE110", 16) # :-*
 
 def subscribe_estimators(simulation):
-    simulation.scheduler.subscribe(DepartureEvent, ThroughputEstimator())
+    simulation.scheduler.subscribe(JobMovementEvent, BusytimeEstimator())
+    simulation.scheduler.subscribe(Event, ObservationTimeEstimator())
+    simulation.scheduler.subscribe(DepartureEvent, CompletionsEstimator())
     simulation.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
     simulation.scheduler.subscribe(JobMovementEvent, PopulationEstimator())
     simulation.scheduler.subscribe(ArrivalEvent, InterarrivalTimeEstimator())

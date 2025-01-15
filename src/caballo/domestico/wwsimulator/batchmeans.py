@@ -1,7 +1,7 @@
 from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
 from caballo.domestico.wwsimulator.handlers import HandleFirstArrival, EventHandler
 from caballo.domestico.wwsimulator.events import DepartureEvent
-from caballo.domestico.wwsimulator.output import ThroughputEstimator, ResponseTimeEstimator, PopulationEstimator
+from caballo.domestico.wwsimulator.output import ResponseTimeEstimator, PopulationEstimator
 from pdsteele.des import rngs
 import json
 from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH
@@ -71,7 +71,7 @@ class BatchMeansInterceptor(EventHandler):
             
             # resets resettable estimators
             scheduler = self.simulation.scheduler
-            scheduler.reset_subscribers()
+            scheduler.reset_subscribers(context)
             
             self.job_completed = 0
             self.batch_completed += 1
@@ -80,7 +80,6 @@ class BatchMeansInterceptor(EventHandler):
                     self.batch_statistics[key] = []
                 self.batch_statistics[key].append(context.statistics[key])
             context.statistics = {}
-            # context.new_batch = True
             if self.batch_completed == self.batch_num:
                 self.simulation.statistics = self.batch_statistics
                 
