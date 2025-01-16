@@ -24,8 +24,8 @@ def subscribe_estimators(simulation):
     simulation.scheduler.subscribe(DepartureEvent, CompletionsEstimator())
     simulation.scheduler.subscribe(JobMovementEvent, ResponseTimeEstimator())
     simulation.scheduler.subscribe(JobMovementEvent, PopulationEstimator())
-    simulation.scheduler.subscribe(ArrivalEvent, InterarrivalTimeEstimator())
-    simulation.scheduler.subscribe(DepartureEvent, ServiceTimeEstimator())
+    # simulation.scheduler.subscribe(ArrivalEvent, InterarrivalTimeEstimator())
+    # simulation.scheduler.subscribe(DepartureEvent, ServiceTimeEstimator())
      
 
 def bm_main(experiment, lambda_val, seed):
