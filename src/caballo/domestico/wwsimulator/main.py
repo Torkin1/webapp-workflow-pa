@@ -59,18 +59,40 @@ def rep_main(experiment, lambda_val, seed):
     simulation.run()
     simulation.print_statistics()
 
+def print_progress(part, total, msg=""):
+    if total == 0:
+        return
+    progress = part / total * 100
+    print(msg, end="")
+    print(f"{progress:.0f}" + "%", end="\r")
 
 if __name__ == "__main__":
     with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
         data = json.load(file)
-    for experiment in data['exps']:
-        # replicated simulation
-        # rep_main(experiment)
-        # batch means simulation
-        for lambda_val in experiment['arrival_distr']['params']:
-             print("lambda_val: ", lambda_val)
-             bm_main(experiment, lambda_val, SEED)
-             rep_main(experiment, lambda_val, SEED)
+    i = 0
+    j = 0
+    experiments = data['exps']
+    progress_message = None
+    batch_size = None
+    for experiment in experiments:
+        simulation_study = experiment['simulation_study']
+        lambda_values = experiment['arrival_distr']['params']
+        print_progress(j, len(lambda_values) * len(experiments), )
+        batch_size = len(lambda_values) * len(experiments)
+        for lambda_val in lambda_values:
+            
+            progress_message = f"Simulation study {simulation_study:^14} with external arrival rate of {lambda_val:.2f} req/s: "
+            print_progress(j, batch_size, progress_message)
+
+            # batch mean
+            bm_main(experiment, lambda_val, SEED)
+            # replicated
+            rep_main(experiment, lambda_val, SEED)
+
+            j += 1
+        i += 1
+    print_progress(j, batch_size, progress_message) # last percentage update
+    print("")  # newline
 
 
 
