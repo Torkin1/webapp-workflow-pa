@@ -1,4 +1,4 @@
-from caballo.domestico.wwsimulator.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent, MisurationEvent
+from caballo.domestico.wwsimulator.events import EventContext, EventHandler, Event, ArrivalEvent, DepartureEvent
 from caballo.domestico.wwsimulator.model import Job, Node, PSQueue, State
 from blist import sortedlist
 

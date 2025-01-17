@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Callable, Dict, Iterable
-from caballo.domestico.wwsimulator.model import Job, Network, Node, Server
+from caballo.domestico.wwsimulator.model import Job, Network, Node
 
 
 class EventContext():
@@ -60,25 +60,5 @@ class ArrivalEvent(JobMovementEvent):
 class DepartureEvent(JobMovementEvent):
     def __init__(self, time: float, handler: EventHandler, job: Job, node: Node):
         super().__init__(time, handler, job, node)
-
-class StopEvent(Event):
-    """
-    A stop event signals the end of the simulation.
-    NOTE: if there are concurrent events scheduled at the same
-    time of the stop event, such events are processed only if they
-    are consumed before the stop event.
-    """
-    def __init__(self, time: float):
-        super().__init__(time, _handle_stop)
-
-class MisurationEvent(Event):
-    """
-    A misuration event signals the end of a batch.
-    """
-    def __init__(self, time: float, handler: EventHandler):
-        super().__init__(time, handler)
-
-def _handle_stop(context: EventContext):
-    context.scheduler.stop = True
 
    

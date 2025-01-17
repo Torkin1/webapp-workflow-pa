@@ -2,7 +2,7 @@ import unittest
 
 from caballo.domestico.wwsimulator.model import Job, Node, Queue, Server
 from caballo.domestico.wwsimulator import simulation
-from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent, StopEvent
+from caballo.domestico.wwsimulator.events import ArrivalEvent, DepartureEvent, Event, EventHandler, JobMovementEvent
 from caballo.domestico.wwsimulator.simulation import SimulationFactory
 from caballo.domestico.wwsimulator.output import PopulationEstimator, ResponseTimeEstimator, ThroughputEstimator
 

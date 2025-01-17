@@ -1,11 +1,8 @@
 import csv
-import json
-import os
 from typing import Type
 
 from blist import sortedlist
 
-from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH, STATISTICS_DIR
 from caballo.domestico.wwsimulator.model import (FIFOQueue, Network, Node,
                                                  PSQueue, Server, State)
 from caballo.domestico.wwsimulator.events import (Event,
