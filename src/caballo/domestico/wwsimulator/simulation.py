@@ -50,14 +50,8 @@ class Simulation():
         while self.scheduler.has_next():
             self.scheduler.next()
     
-    def print_statistics(self):
-        simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S'}
-        simulation_name = simulation_map[type(self).__name__]
-        statistic_path = os.path.join(STATISTICS_DIR, self.study, type(self).__name__)
-        if not os.path.exists(statistic_path):
-            os.makedirs(statistic_path)
+    def print_statistics(self, output_file_path):
 
-        output_file_path = os.path.join(statistic_path, "{}_{}_lambda={}_{}.csv".format(self.study, simulation_name, self.network.job_arrival_param[0], self.initial_seed))
         with open(output_file_path, "w") as output_file:
             fieldnames = ["iteration", "statistic", "value"]
             writer = csv.DictWriter(output_file, fieldnames=fieldnames)
