@@ -79,19 +79,24 @@ def print_progress(part, total, msg=""):
     print(msg, end="")
     print(f"{progress:.0f}" + "%", end="\r")
 
+def count_experiments(experiments):
+    batch_size = 0
+    for experiment in experiments:
+        lambda_values = experiment['arrival_distr']['params']
+        for lambda_val in lambda_values:
+            batch_size += 1
+    return batch_size
+
 if __name__ == "__main__":
     with open(SIMULATION_FACTORY_CONFIG_PATH, 'r') as file:
         data = json.load(file)
-    i = 0
     j = 0
     experiments = data['exps']
     progress_message = None
-    batch_size = None
+    batch_size = count_experiments(experiments)
     for experiment in experiments:
         simulation_study = experiment['simulation_study']
         lambda_values = experiment['arrival_distr']['params']
-        print_progress(j, len(lambda_values) * len(experiments), )
-        batch_size = len(lambda_values) * len(experiments)
         for lambda_val in lambda_values:
             
             progress_message = f"Simulation study {simulation_study:^15} with external arrival rate of {lambda_val:.2f} req/s: "
@@ -103,7 +108,6 @@ if __name__ == "__main__":
             rep_main(experiment, lambda_val, SEED)
 
             j += 1
-        i += 1
     print_progress(j, batch_size, progress_message) # last percentage update
     print("")  # newline
 
