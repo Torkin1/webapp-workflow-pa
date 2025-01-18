@@ -344,8 +344,6 @@ class BusytimeEstimator(EventHandler):
 
     def _handle_departure(self, departure, state, node_id, network, statistics):
         
-        #FIXME: TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'
-
         if node_id == _GLOBAL:
             # we check for every node if they have scheduled departures
             for node in network.nodes:

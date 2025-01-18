@@ -84,7 +84,7 @@ class HandleArrival(EventHandler):
         # aggiornamento dello stato del sistema
         context.network.state.update((job_server_int, job_class), True)
 
-        # generazione evento di departure per il job corrente
+        # get service rate of this node according to job class
         service_rate = float(context.network.nodes[job_server_int].service_rate[job_class])
         
         # rescale service rate if we are using a PS node
