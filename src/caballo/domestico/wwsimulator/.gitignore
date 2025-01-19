@@ -1,1 +1,2 @@
-statistics/
+statistics/*
+!statistics/*.py
