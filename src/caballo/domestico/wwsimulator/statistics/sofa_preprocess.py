@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Use this module to transform each simulation run output into a dataset
+# digestible by SOFA.
+
 import os
 import pandas as pd
 
