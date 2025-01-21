@@ -33,6 +33,14 @@ def save_statistics(output_statistic: OutputStatistic, node_id: str, estimator: 
 
 def save_statistic_value(output_statistic: OutputStatistic, node_id: str, value: float, variant: str, statistics: dict):
     statistics[output_statistic.for_node_variant(node_id, variant)] = value
+# new
+def save_sample_statistics(output_statistic: OutputStatistic, node_id: str, time, estimator: WelfordEstimator, sample: dict):
+    save_statistic_sample_value(output_statistic, node_id, estimator.avg, time, "avg", sample)
+
+def save_statistic_sample_value(output_statistic: OutputStatistic, node_id: str, value: float, time, variant: str, sample: dict):
+    sample_list = sample.get(output_statistic.for_node_variant(node_id, variant), [])
+    sample_list.append((value, time))
+    sample[output_statistic.for_node_variant(node_id, variant)] = sample_list
 
 class CompletionsEstimator(EventHandler):
 
@@ -114,7 +122,7 @@ class ResponseTimeEstimator(EventHandler):
         state.timespans_jobs_in_residence[job.job_id] = residence_timespan
         
     
-    def _estimate_response_time(self, node: str, job: Job, departure: DepartureEvent, statistics):
+    def _estimate_response_time(self, node: str, job: Job, departure: DepartureEvent, statistics, samples, time):
         state = self._states_by_node[node]
         
         residence_timespan = state.timespans_jobs_in_residence[job.job_id]
@@ -123,6 +131,8 @@ class ResponseTimeEstimator(EventHandler):
 
         state.estimator.update(response_time)
         save_statistics(OutputStatistic.RESPONSE_TIME, node, state.estimator, statistics)
+        # new
+        save_sample_statistics(OutputStatistic.RESPONSE_TIME, node, time, state.estimator, samples)
     
     def _handle_arrival(self, context):
         job_movement = context.event
@@ -143,8 +153,8 @@ class ResponseTimeEstimator(EventHandler):
 
         # compute response time of job
         if job_movement.external:
-            self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics)
-        self._estimate_response_time(node.id, job, job_movement, context.statistics)
+            self._estimate_response_time(_GLOBAL, job, job_movement, context.statistics, context.samples, context.event.time)
+        self._estimate_response_time(node.id, job, job_movement, context.statistics, context.samples, context.event.time)
 
 class ObservationTimeEstimator(EventHandler):
 

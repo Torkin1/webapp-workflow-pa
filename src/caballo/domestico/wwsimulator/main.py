@@ -14,6 +14,7 @@ from caballo.domestico.wwsimulator.output import (BusytimeEstimator, Completions
                                                   ResponseTimeEstimator,
                                                   )
 from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
+from caballo.domestico.wwsimulator.transient import TransientSimulation
 from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
 
 SEED = int("5E1BE110", 16) # :-*
@@ -29,7 +30,7 @@ def subscribe_estimators(simulation):
      
 
 def get_output_file_path(simulation: Simulation):
-    simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S'}
+    simulation_map = {'BatchMeansSimulation': 'BM_S', 'ReplicatedSimulation': 'Rep_S', 'TransientSimulation': 'Tr_S'}
     statistic_path = os.path.join(STATISTICS_DIR, simulation.study, type(simulation).__name__)
     simulation_name = simulation_map[type(simulation).__name__]
     if not os.path.exists(statistic_path):
@@ -72,6 +73,19 @@ def rep_main(experiment, lambda_val, seed):
         simulation.run()
         simulation.print_statistics(output_file_path)
 
+def transient_main(experiment, lambda_val, seed):
+    factory = SimulationFactory()
+    num_arrivals = experiment['batch_means']['batch_size']
+    for i in range(5):
+        replica = factory.create(HandleFirstArrival(), experiment, lambda_val, seed=seed+i)
+        replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(num_arrivals))
+        subscribe_estimators(replica)
+        simulation = TransientSimulation(replica)
+        output_file_path = get_output_file_path(simulation)
+        #if not os.path.isfile(output_file_path):
+        simulation.run()
+        simulation.print_sample_statistics(output_file_path)
+
 def print_progress(part, total, msg=""):
     if total == 0:
         return
@@ -103,9 +117,11 @@ if __name__ == "__main__":
             print_progress(j, batch_size, progress_message)
 
             # batch mean
-            bm_main(experiment, lambda_val, SEED)
+            #bm_main(experiment, lambda_val, SEED)
             # replicated
-            rep_main(experiment, lambda_val, SEED)
+            #rep_main(experiment, lambda_val, SEED)
+            # transient
+            transient_main(experiment, lambda_val, SEED)
 
             j += 1
     print_progress(j, batch_size, progress_message) # last percentage update

@@ -39,6 +39,7 @@ class Simulation():
         """
         Name of the study this simulation belongs to. Used to group statistics.
         """
+        self.sample = {}
     
     def run(self):
         # init prng streams with initial seed
@@ -62,8 +63,19 @@ class Simulation():
                     # single statistic value for single run
                     iteration = 0
                     value = values
-                    writer.writerow({"iteration": iteration, "statistic": statistic, "value": value})   
-    
+                    writer.writerow({"iteration": iteration, "statistic": statistic, "value": value})  
+    # new
+    def print_sample_statistics(self, output_file_path):
+
+        with open(output_file_path, "w") as output_file:
+            fieldnames = ["statistic", "value", "time"]
+            writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for statistic, iteration in self.sample.items():
+                # simulation aggregates multiple runs, we have a statistic value for each iteration 
+                for sample_tuple in iteration[0]:
+                    writer.writerow({"statistic": statistic, "value": sample_tuple[0], "time": sample_tuple[1]}) 
+
 class SimulationFactory():
     def create_network(self, experiment, lambda_val) -> Network:
         nodes = []
@@ -136,7 +148,7 @@ class NextEventScheduler:
         event = self._event_list.pop(0)
         if not event.is_cancelled:
 
-            context = EventContext(event, self._simulation.network, self, self._simulation.statistics)
+            context = EventContext(event, self._simulation.network, self, self._simulation.statistics, self._simulation.sample)
 
             # intercepts event
             self._push_notify(self._interceptors_by_topic, context, event)
