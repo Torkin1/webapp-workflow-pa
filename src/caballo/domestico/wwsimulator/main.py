@@ -1,7 +1,7 @@
 import json
 import os
 
-from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH, STATISTICS_DIR
+from caballo.domestico.wwsimulator import SIMULATION_FACTORY_CONFIG_PATH, STATISTICS_DIR, streams
 from caballo.domestico.wwsimulator.batchmeans import (BatchMeansInterceptor,
                                                       BatchMeansSimulation)
 from caballo.domestico.wwsimulator.events import (ArrivalEvent, DepartureEvent,
@@ -16,6 +16,8 @@ from caballo.domestico.wwsimulator.output import (BusytimeEstimator, Completions
 from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
 from caballo.domestico.wwsimulator.transient import TransientSimulation
 from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
+from pdsteele.des.rngs import getSeed
+from pdsteele.des.rngs import plantSeeds, selectStream
 
 
 SEEDS = [
@@ -81,18 +83,22 @@ def rep_main(experiment, lambda_val, seed):
         simulation.run()
         simulation.print_statistics(output_file_path)
 
-def transient_main(experiment, lambda_val, seeds):
+def transient_main(experiment, lambda_val, seeds, replicas):
     factory = SimulationFactory()
     num_arrivals = experiment['batch_means']['batch_size']
-    for i in seeds:
-        replica = factory.create(HandleFirstArrival(), experiment, lambda_val, seed=i)
+    plantSeeds(SEED)
+    for i in range(replicas):
+            
+        selectStream(streams.EXTERNAL_ARRIVALS)
+        seed = getSeed()
+        replica = factory.create(HandleFirstArrival(), experiment, lambda_val, seed=seed)
         replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(num_arrivals))
         subscribe_estimators(replica)
         simulation = TransientSimulation(replica)
         output_file_path = get_output_file_path(simulation)
-        #if not os.path.isfile(output_file_path):
         simulation.run()
         simulation.print_sample_statistics(output_file_path)
+
 
 def print_progress(part, total, msg=""):
     if total == 0:
@@ -130,7 +136,7 @@ if __name__ == "__main__":
             #rep_main(experiment, lambda_val, SEED)
             # transient
 
-            transient_main(experiment, lambda_val, SEEDS)
+            transient_main(experiment, lambda_val, SEEDS, 5)
 
             j += 1
     print_progress(j, batch_size, progress_message) # last percentage update

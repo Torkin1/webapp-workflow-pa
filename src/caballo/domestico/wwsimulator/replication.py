@@ -46,7 +46,8 @@ class ReplicatedSimulation(Simulation):
             # as initial state of the next one to reduce overlap
             i += 1
             if i < len(self.replicas):
-                rngs.selectStream(streams.DEFAULT)
+                # use a stream which has been surely advanced by the previous replica
+                rngs.selectStream(streams.EXTERNAL_ARRIVALS)
                 seed = rngs.getSeed()
                 self.simulation = self.replicas[i]
                 self.simulation.initial_seed = seed
