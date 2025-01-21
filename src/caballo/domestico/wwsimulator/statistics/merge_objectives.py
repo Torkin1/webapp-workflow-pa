@@ -13,21 +13,26 @@ def extract_objective(file_name):
         raise ValueError(f"Could not extract objective name from file name: {file_name}")
 
 # Function to merge two CSV files and add an objective column
-def merge_objective_files(file1, file2, output_file):
-    # Extract objective names
-    objective1 = extract_objective(os.path.basename(file1))
-    objective2 = extract_objective(os.path.basename(file2))
+def merge_objective_files(files, output_file):
+    
+    merged_df = None
+    
+    for file in files:
+    
+        # Extract objective names
+        objective = extract_objective(os.path.basename(file))
 
-    # Read the CSV files
-    df1 = pd.read_csv(file1)
-    df2 = pd.read_csv(file2)
+        # Read the CSV files
+        df = pd.read_csv(file)
 
-    # Add the objective column
-    df1['objective'] = objective1
-    df2['objective'] = objective2
+        # Add the objective column
+        df['objective'] = objective
 
-    # Combine the dataframes
-    merged_df = pd.concat([df1, df2], ignore_index=True)
+        # Combine the dataframes
+        if merged_df is None:
+            merged_df = df
+        else:
+            merged_df = pd.concat([merged_df, df], ignore_index=True)
 
     # Save to the output CSV file
     merged_df.to_csv(output_file, index=False)
@@ -36,7 +41,6 @@ def merge_objective_files(file1, file2, output_file):
 # Example usage
 if __name__ == "__main__":
 
-    file1 = sys.argv[1]
-    file2 = sys.argv[2]
-    output_file = sys.argv[3]
-    merge_objective_files(file1, file2, output_file)
+    files = [arg for arg in sys.argv[1:-1]]
+    output_file = sys.argv[-1]
+    merge_objective_files(files, output_file)
