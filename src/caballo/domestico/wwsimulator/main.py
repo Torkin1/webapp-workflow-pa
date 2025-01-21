@@ -17,7 +17,15 @@ from caballo.domestico.wwsimulator.replication import ReplicatedSimulation
 from caballo.domestico.wwsimulator.transient import TransientSimulation
 from caballo.domestico.wwsimulator.simulation import Simulation, SimulationFactory
 
-SEED = int("5E1BE110", 16) # :-*
+
+SEEDS = [
+    int("5E1BE110", 16), # :-*
+    int("F0CACC1A", 16),
+    int("BAAAAAAD", 16),
+    int("B16B00B5", 16),
+    int("D0D0CACA", 16)
+        ] 
+SEED = SEEDS[0]
 
 def subscribe_estimators(simulation):
     simulation.scheduler.subscribe(JobMovementEvent, BusytimeEstimator())
@@ -73,11 +81,11 @@ def rep_main(experiment, lambda_val, seed):
         simulation.run()
         simulation.print_statistics(output_file_path)
 
-def transient_main(experiment, lambda_val, seed):
+def transient_main(experiment, lambda_val, seeds):
     factory = SimulationFactory()
     num_arrivals = experiment['batch_means']['batch_size']
-    for i in range(5):
-        replica = factory.create(HandleFirstArrival(), experiment, lambda_val, seed=seed+i)
+    for i in seeds:
+        replica = factory.create(HandleFirstArrival(), experiment, lambda_val, seed=i)
         replica.scheduler.subscribe(ArrivalEvent, ArrivalsGeneratorSubscriber(num_arrivals))
         subscribe_estimators(replica)
         simulation = TransientSimulation(replica)
@@ -121,7 +129,8 @@ if __name__ == "__main__":
             # replicated
             #rep_main(experiment, lambda_val, SEED)
             # transient
-            transient_main(experiment, lambda_val, SEED)
+
+            transient_main(experiment, lambda_val, SEEDS)
 
             j += 1
     print_progress(j, batch_size, progress_message) # last percentage update
