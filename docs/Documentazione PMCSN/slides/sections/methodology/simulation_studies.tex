@@ -1,0 +1,82 @@
+\subsubsection{Tipologie di simulazione}
+\begin{frame}{\subsecname: \subsubsecname}
+    \begin{itemize}
+        \item \textbf{Tipologia delle simulazioni}:
+        \begin{itemize}
+            \item \textbf{Simulazioni ad orizzonte infinito}: Batch-Means con:
+            \begin{itemize}
+                \item 100 batch
+                \item 64 job per batch
+            \end{itemize}
+            \item \textbf{Simulazioni transitorie}:
+            \begin{itemize}
+                \item 5 run al variare del seed 
+                \item 64 job per run
+            \end{itemize}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\subsubsection{Parametri di simulazione (1/2)}
+\begin{frame}{\subsecname: \subsubsecname}
+    \begin{enumerate}
+        \item \textbf{Obiettivo 1}: Valutare il comportamento dei server nella configurazione base
+        \begin{table}[H]
+        \centering
+        \begin{tabular}{cccc}
+            \toprule
+            \textbf{Server} & \textbf{Classe 1} & \textbf{Classe 2} & \textbf{Classe 3} \\
+            \midrule
+            \textbf{A} & 5 & 2.5 & 10 \\
+            \textbf{B} & 1.25 & 0 & 0 \\
+            \textbf{C} & 0 & 2.5 & 0 \\
+            \bottomrule
+        \end{tabular}
+        \label{tab:service-rates-vanilla}
+    \end{table}
+    \vspace{0.2cm}
+        \item \textbf{Obiettivo 2}: Analizzare l'impatto dell'\textbf{autenticazione a due fattori}
+        \begin{itemize}
+            \item Server A (classe 3): $6.6667~job/s$
+            \item Server P: $1.4285~job/s$
+            \item Server B: invariato.
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+\subsubsection{Parametri di simulazione (2/2)}
+\begin{frame}{\subsecname: \subsubsecname}    
+\begin{enumerate}
+        \setcounter{enumi}{2}
+        \item \textbf{Obiettivo 3}: Analizzare l'impatto di un nuovo \textbf{carico pesante}:
+        \begin{itemize}
+            \item Configurazione base per i tassi di servizio.
+        \end{itemize}
+        \item \textbf{Obiettivo 4}: Miglioramento delle performance
+        \begin{itemize}
+            \item Variazione del tasso di servizio del \textbf{server B}.
+            \item Configurazione base per gli altri server.
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+\subsubsection{Grafici}
+\begin{frame}{\subsecname: \subsubsecname}
+Abbiamo analizzato tramite grafici:
+    \begin{itemize}
+        \item \textbf{Gli intervalli di confidenza (95\%)}:
+        \[
+        CI = \bar{x} \pm z \cdot \frac{\sigma}{\sqrt{n}}
+        \]
+        \begin{itemize}
+            \item $\bar{x}$: media campionaria.
+            \item $z$: valore critico della distribuzione normale standard ($z = 1.96$).
+            \item $\sigma$: deviazione standard.
+            \item $n$: numero di sample points.
+        \end{itemize}
+        \item \textbf{Distribuzione delle metriche}:
+        \begin{itemize}
+            \item Analisi della distribuzione per batch.
+        \end{itemize}
+    \end{itemize}
+\end{frame}

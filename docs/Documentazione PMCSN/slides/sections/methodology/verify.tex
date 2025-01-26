@@ -1,0 +1,60 @@
+\begin{frame}{\subsecname: Assunzioni modello analitico}
+    \begin{itemize}
+        \onslide<+->{\item Il modello analitico considera il server $A$ con un tasso di servizio medio unico per tutte le classi di job:
+        \[
+        \mu_A = \sum_{c=1}^3 \mu_{A,c} \cdot p_{A,c}
+        \]
+        \begin{itemize}
+            \item $\mu_{A,c}$: tasso di servizio di $A$ per la classe $c$.
+            \item $p_{A,c}$: probabilit\`a di trovare un job di classe $c$ in $A$ ($\frac{1}{3}$ per ciascuna classe).
+        \end{itemize}}
+        \onslide<+->{\item Assunto che il flusso dei job \`e bilanciato, vengono calcolati i rate di arrivo ai server ($\lambda_s$) risolvendo il bilanciamento dei flussi:
+        \[
+        \lambda_A = \gamma + X_B + X_P, \quad \lambda_B = X_B, \quad \lambda_P = X_P
+        \]}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{\subsecname: Indici locali modello analitico}
+    \begin{itemize}
+        \onslide<+->{\item \textbf{Stabilit\`a del sistema}: verificata con l'utilizzazione ($\rho_s$):
+        \[
+        \rho_s = \frac{\lambda_s}{\mu_s}, \quad \text{per ogni server.}
+        \]}
+        \onslide<+->{\item \textbf{Indici locali}:
+        \begin{itemize}
+            \item Tempo di risposta medio per server:
+            \[
+            E[T]_s = \frac{1}{(1 - \rho_s) \cdot \mu_s}
+            \]
+            \item Popolazione media per server (legge di Little):
+            \[
+            E[N]_s = E[T]_s \cdot \lambda_s
+            \]}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{\subsecname: Indici locali modello analitico}
+    \begin{itemize}
+        \onslide<+->{\item \textbf{Visite medie per server}:
+        \[
+        v_s = \frac{\lambda_s}{\gamma}
+        \]}
+        \onslide<+->{\item \textbf{Indici globali}:
+        \begin{itemize}
+            \item Tempo di risposta medio:
+            \[
+            E[T] = \sum_{s=A}^{P} E[T]_s \cdot v_s
+            \]
+            \item Popolazione media (legge di Little):
+            \[
+            E[N] = \gamma \cdot E[T]
+            \]
+            \item Throughput (server $A$, job classe 3):
+            \[
+            X = X_A \cdot p_{A,3}
+            \]}
+        \end{itemize}
+    \end{itemize}
+\end{frame}

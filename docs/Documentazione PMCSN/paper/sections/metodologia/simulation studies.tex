@@ -1,0 +1,28 @@
+Gli obiettivi che ci siamo posti ci hanno portato ad eseguire diverse run con configurazioni diverse di parametri. Per ogni obiettivo viene eseguita una run per ogni tasso di arrivo. Le run effettuate sono simulazioni ad orizzonte infinito implementate come Batch-Means, con 100 batch da 64 job ognuno.\\
+\begin{itemize}
+    \item \textbf{Obiettivo 1}: nel primo esperimento consideriamo i server nel loro assetto base con rate di servizio elencati in \autoref{tab:service-rates-vanilla}.
+    Inoltre solo per questo obiettivo abbiamo voluto osservare il comportamento dello stato transitorio effettuando anche una replicated simulation di 100 repliche da 64 job ciascuna in modo simmetrico rispetto alla simulazione batch means.
+    \item \textbf{Obiettivo 2}: in questo caso i server subiscono una diminuzione dei rate di servizio a causa dell'autenticazione a due fattori. Per il server A nel caso di job di classe 3, diventa 6.6667$job/s$, mente per il server P diventa 1.4285$job/s$, resta invariato per B.
+    \item \textbf{Obiettivo 3}: in questo caso abbiamo esteso i tassi di arrivo fino al nuovo carico pesante richiesto, mentre per i tassi di servizio si torna alla configurazione base dei server.
+    \item \textbf{Obiettivo 4}: per questo obiettivo, come approfondiremo più avanti, sono state fatte più run al variare del rate di servizio del server B nel tentativo di migliorare le performance del sistema. Gli altri server hanno mantenuto la loro configurazione base.
+\end{itemize}
+\begin{table}
+    \centering
+    \caption{Tassi di servizio medi per classe di job offerti da ogni nodo.}
+    \begin{tabular}{ccccc}
+         & Classe 1 & Classe 2 & Classe 3 \\
+         Server A & 5 & 2.5 & 10\\
+         Server B & 1.25 & 0 & 0\\
+         Server C & 0 & 2.5 & 0\\
+    \end{tabular}
+    \label{tab:service-rates-vanilla}
+\end{table}
+Per ogni obiettivo abbiamo generato i seguenti grafici per ogni metrica (tempo medio di risposta, popolazione media, throughput, utilizzazione), per ogni nodo e globalmente per il sistema:
+
+Per ogni run differente viene fatta la media dei valori medi delle metriche in modo da aggregare i dati ottenuti intra-run (le medie delle metriche per singolo batch nel caso di simulazione ad orizzonte infinito e della singola replica per l'orizzonte finito). Allo stesso modo viene calcolata la deviazione standard ed il numero di sample points. Abbiamo quindi calcolato l'intervallo di confidenza secondo \autoref{eq:confidence-interval}:
+\begin{equation}
+    CI = \bar{x} \pm z \cdot \frac{\sigma}{\sqrt{n}}
+    \label{eq:confidence-interval}
+\end{equation}
+Dove $\bar{x}$ è la media campionaria, $z$ è il valore critico della distribuzione normale sandard considerato a livello di confidenza del 95\% (ha valore 1.96), $\sigma$ è la deviazione standard ed $n$ il numero di sample points.\\
+Inoltre abbiamo utilizzato i valori delle metriche ottenuti per batch (o per replica) per osservare la loro distribuzione.

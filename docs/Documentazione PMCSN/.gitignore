@@ -1,0 +1,8 @@
+_minted-slides/
+paper.*
+!paper.tex
+!paper.pdf
+slides.*
+!slides.tex
+!slides.pdf
+*.fls

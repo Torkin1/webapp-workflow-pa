@@ -1,0 +1,62 @@
+Per la verifica della correttezza del simulatore abbiamo studiato il modello analitico del sistema. Il tale modello però non può tenere conto delle tre classi servite dal server A che richiederebbero tre tassi di servizio differenti.\\
+Abbiamo osservato che nel server A entrano tre flussi di job: uno per gli arrivi dall'esterno, due dai feedback dei server B e P. Essendo il percorso dei job deterministico abbiamo concluso che la probabilità di trovare un job di una specifica classe in servizio nel server A è uguale ad $\frac{1}{3}$ per ogni classe. Abbiamo quindi trattato tutti i job del server A con un rate ottenuto facendo la media delle tre classi:
+\begin{equation}
+\displaystyle {\mu}_{A} = \sum_{c=1}^{3} {\mu}_{A,c} {p}_{A,c}
+\end{equation}
+Dove ${\mu}_{A,c}$ è il tasso di servizio della classe \textit{c} nel server A e ${p}_{A,c}$ è la probabilità di trovare un job di classe \textit{c} nel server A se quest'ultimo è occupato.
+Considerato quanto detto fin'ora e con l'ulteriore assunzione che il flusso dei job è bilanciato possiamo scrivere \autoref{eq:lambdas} che esprime i rate di arrivi a ogni server, calcolati risolvendo il bilanciamento dei flussi riportato in \autoref{eq:flow-balance} e ottenendo cosi \autoref{eq:flow-balance-solved}.
+
+\begin{equation}
+  \begin{aligned}
+    & \displaystyle {\lambda}_{A} = \gamma + {X}_{B} + {X}_{P}\\
+    & \displaystyle {\lambda}_{B} = {X}_{B}\\
+    & \displaystyle {\lambda}_{P} = {X}_{P}
+  \end{aligned}
+  \label{eq:lambdas}
+\end{equation}
+
+\begin{equation}
+  \left\{\begin{array}{@{}l@{}}
+    \displaystyle \gamma + {X}_{B} + {X}_{P} = \left({p}_{A,1} + {p}_{A,2} + {p}_{A,3}\right) {X}_{A}\\
+    \displaystyle {X}_{A} {p}_{A,1} = {X}_{B}\\
+    \displaystyle {X}_{A} {p}_{P,2} = {X}_{P}
+  \end{array}\right.\
+  \label{eq:flow-balance}
+\end{equation}
+
+\begin{equation}
+  \begin{aligned}
+    & \displaystyle {X}_{A} = {\lambda}_{A} = 3\gamma\\
+    & \displaystyle {X}_{B} = {\lambda}_{B} = \gamma\\
+    & \displaystyle {X}_{P} = {\lambda}_{P} = \gamma
+  \end{aligned}
+  \label{eq:flow-balance-solved}
+\end{equation}
+Per ogni obiettivo prima di procedere al calcolo degli indici locali e globali andiamo a calcolare l'utilizzazione al variare del tasso di arrivo dall'esterno $\gamma$ per ogni server per assicurarci che siano stabili.
+\begin{equation}
+\displaystyle {\rho}_{s} = \frac{{\lambda}_{s}}{\mu_{s}}
+\end{equation}
+Per il calcolo del tempo di risposta per ogni server abbiamo utilizzato \autoref{eq:ps-rtime}.
+\begin{equation}
+\displaystyle {E[T]}_{s} = \frac{1}{\left(1 - {\rho}_{s}\right) {\mu}_{s}}
+\label{eq:ps-rtime}
+\end{equation}
+Mentre per la popolazione media abbiamo utilizzato la legge di Little riportata in \autoref{eq:little}.
+\begin{equation}
+    \displaystyle {E[N]}_{s} = {E[T]}_{s} {\lambda}_{s}
+    \label{eq:little}
+\end{equation}
+Infine per quanto riguarda gli indici globali sono stati calcolati come in \autoref{eq:output-global}. Abbiamo calcolato per ogni nodo le visite medie con l'\autoref{eq:visits}. Con le visite medie abbiamo potuto calcolare il tempo di risposta medio e, di conseguenza, utilizzando il teorema di Little la popolazione media. Per quanto riguarda il throughput viene preso in considerazione quello del server A dei soli job di classe 3 ovvero quelli che escono dal sistema. Essendo dipendente dal tasso di arrivo $\gamma$ ciò è valido solo se il sistema è stabile.
+\begin{equation}
+    \displaystyle {v}_{s} = \frac{{\lambda}_{s}}{\gamma}
+    \label{eq:visits}
+\end{equation}
+\begin{equation}
+  \begin{aligned}
+    & \displaystyle E[T] = \sum_{s=A}^{P} {E[T]}_{s} {v}_{s}\\
+    & \displaystyle E[N] = \gamma E[T]\\
+    & \displaystyle X = {X}_{A} {p}_{A,3}
+  \end{aligned}
+  \label{eq:output-global}
+\end{equation}
+

@@ -1,0 +1,49 @@
+\documentclass[compress]{beamer}
+\usepackage[
+    title={Performance Analysis of a Web App Workflow},
+    subtitle={},
+    event={Progetto fine corso PMCSN},
+    author={DLP, EV},
+    longauthor={Daniele La Prova, Elisa Verza},
+    email={},
+    institute={PMCSN 2024-2025},
+    longinstitute={Universita' degli Studi di Roma Tor Vergata},
+]{unislides}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{minted}
+\usepackage{algorithm}
+\usepackage{hyperref}
+\usepackage{adjustbox}
+\usepackage{svg}
+\usepackage{natbib}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\svgsetup{inkscapelatex=false}
+
+\begin{document}
+
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\section{Introduzione}
+\input{slides/sections/introduction}
+
+\section{Metodologia}
+\input{slides/sections/methodology/methodology}
+
+\section{Results and Discussion}
+\input{slides/sections/results and discussion/results_and_discussion}
+
+\input{slides/sections/credits}
+
+% Bibliography
+\bibliographystyle{ACM-Reference-Format}
+\begin{frame}{References}
+\bibliography{paper/bibliography}
+\end{frame}
+
+\end{document}
